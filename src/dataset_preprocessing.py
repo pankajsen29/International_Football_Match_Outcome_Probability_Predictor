@@ -54,9 +54,6 @@ def show_dataset_overview(dataframe):
     print(dataframe.duplicated().sum())
 
 
-def main():
+def preprocess_dataset():
     results, former_names = load_data()
     show_dataset_overview(results)
-
-if __name__ == "__main__":
-    main()
