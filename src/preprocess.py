@@ -10,25 +10,9 @@
 #   data/cleaned/upcoming_matches.csv
 ####################################################################
 
-from pathlib import Path
 import pandas as pd
 import numpy as np
-
-
-############# Paths ###################
-PROJECT_ROOT = Path(__file__).resolve().parent.parent
-
-RAW_DIR = PROJECT_ROOT / "data" / "raw"
-CLEAN_DIR = PROJECT_ROOT / "data" / "cleaned"
-
-RESULTS_FILE = RAW_DIR / "results.csv"
-FORMER_NAMES_FILE = RAW_DIR / "former_names.csv"
-
-OUTPUT_FILE = CLEAN_DIR / "results_cleaned.csv"
-
-UPCOMING_MATCHES_FILE = CLEAN_DIR / "upcoming_matches.csv"
-
-CLEAN_DIR.mkdir(parents=True, exist_ok=True)
+import src.config as cfg
 
 ##############  Safe historical name changes ############# 
 # included genuine country renamings, geopolitical splits are avoided, e.g.,:
@@ -46,8 +30,8 @@ SAFE_NAME_CHANGES = {
 def load_datasets():
     print("Loading datasets...")
 
-    results = pd.read_csv(RESULTS_FILE)
-    former_names = pd.read_csv(FORMER_NAMES_FILE)
+    results = pd.read_csv(cfg.RESULTS_FILE)
+    former_names = pd.read_csv(cfg.FORMER_NAMES_FILE)
 
     print(f"Matches loaded : {len(results):,}")
     print(f"Former names   : {len(former_names):,}")
@@ -253,6 +237,6 @@ def preprocess_dataset():
 
     print_summary(results)
 
-    save_dataset(results, OUTPUT_FILE)
-    save_dataset(upcoming_matches, UPCOMING_MATCHES_FILE)
+    save_dataset(results, cfg.OUTPUT_FILE)
+    save_dataset(upcoming_matches, cfg.UPCOMING_MATCHES_FILE)
 
