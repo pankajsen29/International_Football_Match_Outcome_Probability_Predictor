@@ -94,6 +94,204 @@ This dataset includes Total 49,393 results of international football matches.
      Later I may use this if I plan to build a separate model to predict shootout winner.
 
 
+## 3. Dataset Cleaning:
+
+This step is for cleaning and standardizing the raw data.
+
+**File:** dataset_preprocessing.py
+
+**Outputs:**
+    results_cleaned.csv
+    upcoming_matches.csv
+
+**Steps:**
+
+A) Loads the input datasets: results.csv and former_names.csv.
+
+B) Converts below columns to their appropriate data types:
+
+    "dates" to "datetime"
+    "scores" to "numeric"
+    "neutral" to "Python booleans" by replacing "TRUE"/"FALSE"
+
+C) Inspects/shows dataset overview:
+ - shows the number of missing values along with column names. (hint: pandas treats NA, NaN, N/A, NULL, null, #N/A etc. as missing values)
+ - also shows the number of duplicate rows.
+
+D) Handles missing values:
+ - previous step shows the number of missing values along with column names.
+ - keeps the future matches in "upcoming_matches" dataframe.
+ - removes rows with missing essential information:
+   
+       "date",
+       "home_team",
+       "away_team",
+       "home_score",
+       "away_score"
+   
+ - (optional) tournament, city, country are filled with "Unknown".
+ - (optional) neutral is filled with "False".
+ - returns the updated "results" dataframe.
+ - also returns the "upcoming_matches" dataframe (which can be used for predictions later)
+   
+E) Standardizes text columns: removes leading/trailing spaces.
+
+F) Standardize historical country names:
+
+At the beginning it just shows the mapping available in "former_names.csv".
+Columns like "start_date", "end_date" in this dataset are there to see the historical mappings. 
+But I have only considered the safe historical name changes, meaning included only the genuine country renamings. 
+Geopolitical splits (i.e., when dataset contains one country in two/three different names)
+such as Yugoslavia -> Serbia, Soviet Union -> Russia etc. are not considered for replacements.
+
+G) Removes duplicate rows.
+
+H) Sorts matches chronologically (oldest -> newest)
+
+I) Create the target variable 
+
+    if home_score > away_score = "Home Win", 
+    if home_score < away_score = "Away Win",
+    Otherwise, "Draw"
+
+J) prints the final cleaning report.
+
+K) Saves results_cleaned.csv and upcoming_matches.csv
 
 
+**Display Output:**
 
+      Loading datasets...
+      Matches loaded : 49,502
+      Former names   : 36
+      
+      Converting columns to their appropriate data types...
+      
+      =========== DATASET OVERVIEW =============
+      <class 'pandas.DataFrame'>
+      RangeIndex: 49502 entries, 0 to 49501
+      Data columns (total 9 columns):
+       #   Column      Non-Null Count  Dtype         
+      ---  ------      --------------  -----         
+       0   date        49502 non-null  datetime64[us]
+       1   home_team   49502 non-null  str           
+       2   away_team   49502 non-null  str           
+       3   home_score  49495 non-null  float64       
+       4   away_score  49495 non-null  float64       
+       5   tournament  49502 non-null  str           
+       6   city        49502 non-null  str           
+       7   country     49502 non-null  str           
+       8   neutral     49502 non-null  bool          
+      dtypes: bool(1), datetime64[us](1), float64(2), str(5)
+      memory usage: 3.1 MB
+      None
+      
+      Missing Values
+      date          0
+      home_team     0
+      away_team     0
+      home_score    7
+      away_score    7
+      tournament    0
+      city          0
+      country       0
+      neutral       0
+      dtype: int64
+      
+      Duplicate Rows
+      0
+      
+      Handling missing values...
+      
+      Missing Values Before Cleaning:
+      date          0
+      home_team     0
+      away_team     0
+      home_score    7
+      away_score    7
+      tournament    0
+      city          0
+      country       0
+      neutral       0
+      dtype: int64
+      Removed 7 rows with missing essential values.
+      
+      Missing Values After Cleaning:
+      date          0
+      home_team     0
+      away_team     0
+      home_score    0
+      away_score    0
+      tournament    0
+      city          0
+      country       0
+      neutral       0
+      dtype: int64
+      
+      Cleaning text columns...
+      
+      Available historical name mappings:
+                      current                                former  start_date    end_date
+      0                 Benin                               Dahomey  1959-11-08  1975-11-30
+      1          Burkina Faso                           Upper Volta  1960-04-14  1984-08-04
+      2               Curaçao                  Netherlands Antilles  1957-03-03  2010-10-10
+      3        Czechoslovakia                               Bohemia  1903-04-05  1919-01-01
+      4        Czechoslovakia                   Bohemia and Moravia  1939-01-01  1945-05-01
+      5        Czechoslovakia  Representation of Czechs and Slovaks  1993-03-24  1993-11-17
+      6              DR Congo                         Belgian Congo  1948-05-25  1956-01-02
+      7              DR Congo                    Congo-Léopoldville  1963-04-12  1964-07-19
+      8              DR Congo                        Congo-Kinshasa  1965-01-09  1970-11-24
+      9              DR Congo                                 Zaïre  1971-01-10  1997-04-27
+      10             Djibouti                     French Somaliland  1947-12-05  1977-06-27
+      11                Egypt                  United Arab Republic  1958-02-22  1971-09-11
+      12             Eswatini                             Swaziland  1968-05-01  2018-04-19
+      13                Ghana                            Gold Coast  1950-05-28  1957-03-06
+      14        Guinea-Bissau                     Portuguese Guinea  1953-06-02  1973-09-24
+      15               Guyana                        British Guiana  1905-07-21  1967-08-02
+      16            Indonesia                     Dutch East Indies  1934-05-13  1951-03-04
+      17               Israel                   Mandatory Palestine  1934-03-16  1940-04-27
+      18               Malawi                             Nyasaland  1957-08-28  1964-07-04
+      19             Malaysia                                Malaya  1948-06-20  1963-08-16
+      20              Myanmar                                 Burma  1952-03-14  1989-01-01
+      21      North Macedonia                             Macedonia  1993-10-13  2018-11-19
+      22     Northern Ireland                               Ireland  1882-02-18  1956-04-11
+      23  Republic of Ireland                      Irish Free State  1924-05-28  1936-12-06
+      24  Republic of Ireland                                  Éire  1937-01-01  1953-03-25
+      25               Russia                          Soviet Union  1924-11-16  1991-11-13
+      26               Russia                                   CIS  1992-01-25  1992-06-18
+      27                Samoa                         Western Samoa  1979-08-31  1996-11-15
+      28               Serbia                         FR Yugoslavia  1994-12-23  2003-02-03
+      29               Serbia                 Serbia and Montenegro  2003-02-04  2006-06-21
+      30            Sri Lanka                                Ceylon  1952-03-24  1972-05-22
+      31             Suriname                          Dutch Guyana  1921-01-28  1975-11-25
+      32             Tanzania                            Tanganyika  1945-01-01  1964-04-26
+      33              Vanuatu                          New Hebrides  1951-10-04  1980-07-30
+      34               Zambia                     Northern Rhodesia  1947-02-22  1964-10-25
+      35             Zimbabwe                     Southern Rhodesia  1946-06-16  1980-04-18
+      
+      But only below mappings are considered for replacements...
+      {'West Germany': 'Germany', 'Burma': 'Myanmar', 'Ceylon': 'Sri Lanka', 'Swaziland': 'Eswatini'}
+      
+      Home team names updated : 0
+      Away team names updated : 0
+      
+      Duplicate rows removed: 0
+      
+      =========== CLEANING SUMMARY =============
+      Final shape : (49495, 10)
+      
+      Target Distribution
+      target
+      Home Win    24256
+      Away Win    13983
+      Draw        11256
+      Name: count, dtype: int64
+      
+      Date Range
+      1872-11-30 00:00:00  ->  2026-07-04 00:00:00
+      
+      Cleaned dataset saved to:
+      C:\xxxx\data\cleaned\results_cleaned.csv
+      
+      Cleaned dataset saved to:
+      C:\xxxx\data\cleaned\upcoming_matches.csv
