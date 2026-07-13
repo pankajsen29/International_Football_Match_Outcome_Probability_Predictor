@@ -7,6 +7,7 @@
 
 # Output:
 #   data/cleaned/results_cleaned.csv
+#   data/cleaned/upcoming_matches.csv
 ####################################################################
 
 from pathlib import Path
@@ -24,6 +25,8 @@ RESULTS_FILE = RAW_DIR / "results.csv"
 FORMER_NAMES_FILE = RAW_DIR / "former_names.csv"
 
 OUTPUT_FILE = CLEAN_DIR / "results_cleaned.csv"
+
+UPCOMING_MATCHES_FILE = CLEAN_DIR / "upcoming_matches.csv"
 
 CLEAN_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -65,10 +68,31 @@ def show_dataset_overview(dataframe):
     print(dataframe.duplicated().sum())
 
 
-############  Converts date column #############
-def convert_dates(dataframe):
-    print("\nConverting date column...")
+############  Convert columns to their appropriate data types #############
+def convert_data_types(dataframe):
+    print("\nConverting columns to their appropriate data types...")
+
+    # Date
     dataframe["date"] = pd.to_datetime(dataframe["date"])
+
+    # Scores
+    dataframe["home_score"] = pd.to_numeric(
+        dataframe["home_score"],
+        errors="coerce"
+    )
+
+    dataframe["away_score"] = pd.to_numeric(
+        dataframe["away_score"],
+        errors="coerce"
+    )
+
+    # Neutral venue
+    dataframe["neutral"] = (
+        dataframe["neutral"]
+        .astype(str)
+        .str.upper()
+        .map({"TRUE": True, "FALSE": False})
+    )
     return dataframe
 
 
@@ -131,6 +155,15 @@ def sort_by_date(dataframe):
 def handle_missing_values(dataframe):
     print("\nHandling missing values...")
 
+    print("\nMissing Values Before Cleaning:")
+    print(dataframe.isnull().sum())
+
+    # separates upcoming matches
+    upcoming_matches = dataframe[
+        dataframe["home_score"].isna() &
+        dataframe["away_score"].isna()
+    ].copy()
+
     # need to remove rows with missing essential information
     essential_columns = [
         "date",
@@ -154,9 +187,12 @@ def handle_missing_values(dataframe):
     dataframe["country"] = dataframe["country"].fillna("Unknown")
 
     # optional
-    dataframe["neutral"] = dataframe["neutral"].fillna("FALSE")
+    dataframe["neutral"] = dataframe["neutral"].fillna("False")
 
-    return dataframe
+    print("\nMissing Values After Cleaning:")
+    print(dataframe.isnull().sum())
+
+    return dataframe, upcoming_matches
 
 
 ############  Creates target variable ############
@@ -190,34 +226,33 @@ def print_summary(dataframe):
 
 
 #############  Saves cleaned csv: results_cleaned.csv ############
-def save_dataset(dataframe):
-    dataframe.to_csv(OUTPUT_FILE, index=False)
-    print(f"\nCleaned dataset saved to:\n{OUTPUT_FILE}")
+def save_dataset(dataframe, file):
+    dataframe.to_csv(file, index=False)
+    print(f"\nCleaned dataset saved to:\n{file}")
 
 
 #############  Calls all the cleaning steps in sequence ############
 def preprocess_dataset():
-    results, former_names = load_datasets()
+    results, former_names = load_datasets()    
+
+    results = convert_data_types(results)
+
     show_dataset_overview(results)
 
-    results = convert_dates(results)
+    results, upcoming_matches = handle_missing_values(results)
 
     results = clean_text_columns(results)
 
-    results = standardize_team_names(
-        results,
-        former_names
-    )
+    results = standardize_team_names(results, former_names)
 
     results = remove_duplicates(results)
 
-    results = sort_by_date(results)
-
-    results = handle_missing_values(results)
+    results = sort_by_date(results)   
 
     results = create_target(results)
 
     print_summary(results)
 
-    save_dataset(results)
+    save_dataset(results, OUTPUT_FILE)
+    save_dataset(upcoming_matches, UPCOMING_MATCHES_FILE)
 
