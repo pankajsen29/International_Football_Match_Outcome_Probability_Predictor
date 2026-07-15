@@ -70,7 +70,7 @@ def convert_data_types(dataframe):
         errors="coerce"
     )
 
-    # Neutral venue
+    # Neutral venue: convert to String > convert to uppercase > replace "TRUE"/"FALSE" with Python booleans > store back into the neutral column
     dataframe["neutral"] = (
         dataframe["neutral"]
         .astype(str)
@@ -237,6 +237,6 @@ def preprocess_dataset():
 
     print_summary(results)
 
-    save_dataset(results, cfg.OUTPUT_FILE)
+    save_dataset(results, cfg.CLEANED_FILE)
     save_dataset(upcoming_matches, cfg.UPCOMING_MATCHES_FILE)
 
