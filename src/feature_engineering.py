@@ -32,6 +32,24 @@ def initialize_team_stats():
         }
     )
 
+######### Stores historical statistics for every pair of teams #######
+def initialize_head_to_head():
+    return defaultdict(
+        lambda: {
+            "matches": 0,
+            "home_team_wins": 0,
+            "away_team_wins": 0,
+            "draws": 0,
+            "home_team_goals": 0,
+            "away_team_goals": 0,
+        }
+    )
+
+#### Create a unique key regardless of home/away order #####
+#### e.g., "France, Germany" / "Germany, France" >> ("France", "Germany")
+def get_h2h_key(team1, team2):
+    return tuple(sorted([team1, team2]))
+
 ####### Prevent divide-by-zero #########
 def safe_divide(numerator, denominator):
     if denominator == 0:
@@ -91,6 +109,57 @@ def extract_team_features(team_name, team_stats):
         **recent
     }
 
+###### Return historical head-to-head statistics #######
+def extract_head_to_head_features(home_team, away_team, h2h_stats):
+    key = get_h2h_key(home_team, away_team)
+    stats = h2h_stats[key]
+    matches = stats["matches"]
+
+    if matches == 0:
+        return {
+            "h2h_matches": 0,
+            "h2h_home_team_win_rate": 0.0,
+            "h2h_away_team_win_rate": 0.0,
+            "h2h_draw_rate": 0.0,
+            "h2h_home_avg_goals": 0.0,
+            "h2h_away_avg_goals": 0.0,
+            "h2h_goal_difference": 0.0,
+        }
+
+    # The stored statistics always refer to the
+    # alphabetically first team and second team.
+    # Convert them to the perspective of the current
+    # home and away teams.
+
+    first_team, second_team = key
+
+    if home_team == first_team:
+
+        home_wins = stats["home_team_wins"]
+        away_wins = stats["away_team_wins"]
+
+        home_goals = stats["home_team_goals"]
+        away_goals = stats["away_team_goals"]
+
+    else:
+
+        home_wins = stats["away_team_wins"]
+        away_wins = stats["home_team_wins"]
+
+        home_goals = stats["away_team_goals"]
+        away_goals = stats["home_team_goals"]
+
+    return {
+        "h2h_matches": matches,
+        "h2h_home_team_win_rate": safe_divide(home_wins, matches),
+        "h2h_away_team_win_rate": safe_divide(away_wins, matches),
+        "h2h_draw_rate": safe_divide(stats["draws"], matches),
+        "h2h_home_avg_goals": safe_divide(home_goals, matches),
+        "h2h_away_avg_goals": safe_divide(away_goals, matches),
+        "h2h_goal_difference": safe_divide(home_goals - away_goals, matches),
+    }
+
+
 ######### Update team statistics after the features for the current match have been created #########
 def update_team_statistics(home_team, away_team, home_score, away_score, team_stats):
 
@@ -142,11 +211,47 @@ def update_team_statistics(home_team, away_team, home_score, away_score, team_st
     away["recent_goals_conceded"].append(home_score)
 
 
-############### Create Feature Row: create one feature dictionary for a match ###########
-def create_feature_row(match, team_stats):
-    home = extract_team_features(match["home_team"], team_stats)
-    away = extract_team_features(match["away_team"], team_stats)
+######## Update H2H statistics after a match #########
+def update_head_to_head(home_team, away_team, home_score, away_score, h2h_stats):
+    key = get_h2h_key(home_team, away_team)
+    stats = h2h_stats[key]
+    first_team, second_team = key
 
+    if home_team == first_team:
+        stats["home_team_goals"] += home_score
+        stats["away_team_goals"] += away_score
+
+        if home_score > away_score:
+            stats["home_team_wins"] += 1
+
+        elif home_score < away_score:
+            stats["away_team_wins"] += 1
+
+        else:
+            stats["draws"] += 1
+
+    else:
+        stats["home_team_goals"] += away_score
+        stats["away_team_goals"] += home_score
+
+        if away_score > home_score:
+            stats["home_team_wins"] += 1
+
+        elif away_score < home_score:
+            stats["away_team_wins"] += 1
+
+        else:
+            stats["draws"] += 1
+
+    stats["matches"] += 1
+
+
+############### Create Feature Row: create one feature dictionary for a match ###########
+def create_feature_row(match, team_stats, h2h_stats):
+    home = extract_team_features(match["home_team"], team_stats)
+    away = extract_team_features(match["away_team"], team_stats)    
+    h2h = extract_head_to_head_features(match["home_team"], match["away_team"], h2h_stats)
+    
     return {
         "date": match["date"],
         "home_team": match["home_team"],
@@ -176,6 +281,9 @@ def create_feature_row(match, team_stats):
         "home_last5_goal_difference": home["last5_goal_difference"],
         "away_last5_goal_difference": away["last5_goal_difference"],
 
+        # head to head statistics
+        **h2h,
+
         "target": match["target"]
     }
 
@@ -199,6 +307,7 @@ def load_dataset(filepath):
 def generate_features(dataframe):
     print("\nGenerating Features...")
     team_stats = initialize_team_stats()
+    h2h_stats = initialize_head_to_head()
 
     feature_rows = []
     total_matches = len(dataframe)
@@ -206,7 +315,7 @@ def generate_features(dataframe):
     for index, (_, match) in enumerate(dataframe.iterrows(), start=1):
 
         # Create feature row
-        feature_row = create_feature_row(match, team_stats)
+        feature_row = create_feature_row(match, team_stats, h2h_stats)
 
         feature_rows.append(feature_row)
 
@@ -217,6 +326,14 @@ def generate_features(dataframe):
             home_score=match["home_score"],
             away_score=match["away_score"],
             team_stats=team_stats
+        )
+
+        update_head_to_head(
+            home_team=match["home_team"],
+            away_team=match["away_team"],
+            home_score=match["home_score"],
+            away_score=match["away_score"],
+            h2h_stats=h2h_stats
         )
 
         # Progress
