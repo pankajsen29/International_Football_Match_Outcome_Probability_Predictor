@@ -248,16 +248,16 @@ def update_head_to_head(home_team, away_team, home_score, away_score, h2h_stats)
 
 ############### Create Feature Row: create one feature dictionary for a match ###########
 def create_feature_row(match, team_stats, h2h_stats):
-    home = extract_team_features(match["home_team"], team_stats)
-    away = extract_team_features(match["away_team"], team_stats)    
-    h2h = extract_head_to_head_features(match["home_team"], match["away_team"], h2h_stats)
+    home = extract_team_features(match.home_team, team_stats)
+    away = extract_team_features(match.away_team, team_stats)    
+    h2h = extract_head_to_head_features(match.home_team, match.away_team, h2h_stats)
     
     return {
-        "date": match["date"],
-        "home_team": match["home_team"],
-        "away_team": match["away_team"],
-        "tournament": match["tournament"],
-        "neutral": match["neutral"],
+        "date": match.date,
+        "home_team": match.home_team,
+        "away_team": match.away_team,
+        "tournament": match.tournament,
+        "neutral": match.neutral,
 
         # Career statistics
         "home_matches_played": home["matches_played"],
@@ -284,7 +284,7 @@ def create_feature_row(match, team_stats, h2h_stats):
         # head to head statistics
         **h2h,
 
-        "target": match["target"]
+        "target": match.target
     }
 
 
@@ -312,7 +312,7 @@ def generate_features(dataframe):
     feature_rows = []
     total_matches = len(dataframe)
 
-    for index, (_, match) in enumerate(dataframe.iterrows(), start=1):
+    for index, match in enumerate(dataframe.itertuples(index=False), start=1):
 
         # Create feature row
         feature_row = create_feature_row(match, team_stats, h2h_stats)
@@ -321,18 +321,18 @@ def generate_features(dataframe):
 
         # Update statistics AFTER feature creation
         update_team_statistics(
-            home_team=match["home_team"],
-            away_team=match["away_team"],
-            home_score=match["home_score"],
-            away_score=match["away_score"],
+            home_team=match.home_team,
+            away_team=match.away_team,
+            home_score=match.home_score,
+            away_score=match.away_score,
             team_stats=team_stats
         )
 
         update_head_to_head(
-            home_team=match["home_team"],
-            away_team=match["away_team"],
-            home_score=match["home_score"],
-            away_score=match["away_score"],
+            home_team=match.home_team,
+            away_team=match.away_team,
+            home_score=match.home_score,
+            away_score=match.away_score,
             h2h_stats=h2h_stats
         )
 
