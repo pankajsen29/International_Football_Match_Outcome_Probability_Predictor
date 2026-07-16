@@ -230,44 +230,13 @@ K) Saves results_cleaned.csv and upcoming_matches.csv
       
       Cleaning text columns...
       
-      Available historical name mappings:
-                      current                                former  start_date    end_date
-      0                 Benin                               Dahomey  1959-11-08  1975-11-30
-      1          Burkina Faso                           Upper Volta  1960-04-14  1984-08-04
-      2               Curaçao                  Netherlands Antilles  1957-03-03  2010-10-10
-      3        Czechoslovakia                               Bohemia  1903-04-05  1919-01-01
-      4        Czechoslovakia                   Bohemia and Moravia  1939-01-01  1945-05-01
-      5        Czechoslovakia  Representation of Czechs and Slovaks  1993-03-24  1993-11-17
-      6              DR Congo                         Belgian Congo  1948-05-25  1956-01-02
-      7              DR Congo                    Congo-Léopoldville  1963-04-12  1964-07-19
-      8              DR Congo                        Congo-Kinshasa  1965-01-09  1970-11-24
-      9              DR Congo                                 Zaïre  1971-01-10  1997-04-27
-      10             Djibouti                     French Somaliland  1947-12-05  1977-06-27
-      11                Egypt                  United Arab Republic  1958-02-22  1971-09-11
-      12             Eswatini                             Swaziland  1968-05-01  2018-04-19
-      13                Ghana                            Gold Coast  1950-05-28  1957-03-06
-      14        Guinea-Bissau                     Portuguese Guinea  1953-06-02  1973-09-24
-      15               Guyana                        British Guiana  1905-07-21  1967-08-02
-      16            Indonesia                     Dutch East Indies  1934-05-13  1951-03-04
-      17               Israel                   Mandatory Palestine  1934-03-16  1940-04-27
-      18               Malawi                             Nyasaland  1957-08-28  1964-07-04
-      19             Malaysia                                Malaya  1948-06-20  1963-08-16
-      20              Myanmar                                 Burma  1952-03-14  1989-01-01
-      21      North Macedonia                             Macedonia  1993-10-13  2018-11-19
-      22     Northern Ireland                               Ireland  1882-02-18  1956-04-11
-      23  Republic of Ireland                      Irish Free State  1924-05-28  1936-12-06
-      24  Republic of Ireland                                  Éire  1937-01-01  1953-03-25
-      25               Russia                          Soviet Union  1924-11-16  1991-11-13
-      26               Russia                                   CIS  1992-01-25  1992-06-18
-      27                Samoa                         Western Samoa  1979-08-31  1996-11-15
-      28               Serbia                         FR Yugoslavia  1994-12-23  2003-02-03
-      29               Serbia                 Serbia and Montenegro  2003-02-04  2006-06-21
-      30            Sri Lanka                                Ceylon  1952-03-24  1972-05-22
-      31             Suriname                          Dutch Guyana  1921-01-28  1975-11-25
-      32             Tanzania                            Tanganyika  1945-01-01  1964-04-26
-      33              Vanuatu                          New Hebrides  1951-10-04  1980-07-30
-      34               Zambia                     Northern Rhodesia  1947-02-22  1964-10-25
-      35             Zimbabwe                     Southern Rhodesia  1946-06-16  1980-04-18
+      Available historical name mappings (only first 5 rows are shown):
+                current                former  start_date    end_date
+      0           Benin               Dahomey  1959-11-08  1975-11-30
+      1    Burkina Faso           Upper Volta  1960-04-14  1984-08-04
+      2         Curaçao  Netherlands Antilles  1957-03-03  2010-10-10
+      3  Czechoslovakia               Bohemia  1903-04-05  1919-01-01
+      4  Czechoslovakia   Bohemia and Moravia  1939-01-01  1945-05-01
       
       But only below mappings are considered for replacements...
       {'West Germany': 'Germany', 'Burma': 'Myanmar', 'Ceylon': 'Sri Lanka', 'Swaziland': 'Eswatini'}
