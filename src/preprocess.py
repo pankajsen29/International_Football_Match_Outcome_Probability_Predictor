@@ -99,8 +99,9 @@ def clean_text_columns(dataframe):
 
 ############  Standardizes former country names  ############  
 def standardize_team_names(dataframe, former_names):
-    print("\nAvailable historical name mappings:")
-    print(former_names)
+    print("\nAvailable historical name mappings (only first 5 rows are shown):")
+    #print(former_names) 
+    print(former_names.head()) # only first 5 rows are displayed 
 
     before_home = dataframe["home_team"].copy()
     before_away = dataframe["away_team"].copy()
