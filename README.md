@@ -94,7 +94,7 @@ This dataset includes Total 49,393 results of international football matches.
      Later I may use this if I plan to build a separate model to predict shootout winner.
 
 
-## 3. Dataset Cleaning:
+## 4. Dataset Cleaning:
 
 This step is for cleaning and standardizing the raw data.
 
@@ -260,7 +260,384 @@ K) Saves results_cleaned.csv and upcoming_matches.csv
       1872-11-30 00:00:00  ->  2026-07-04 00:00:00
       
       Cleaned dataset saved to:
-      C:\xxxx\data\cleaned\results_cleaned.csv
+      C:\xxxx\International_Football_Match_Outcome_Probability_Predictor\data\cleaned\results_cleaned.csv
       
       Cleaned dataset saved to:
-      C:\xxxx\data\cleaned\upcoming_matches.csv
+      C:\xxxx\International_Football_Match_Outcome_Probability_Predictor\data\cleaned\upcoming_matches.csv
+
+
+## 5. Feature Engineering pipeline:
+
+This step creates the features the model can learn from.
+
+**File:** feature_engineering.py
+
+**Output:** matches_features.csv
+
+Hint: The engineered features will have 3 categories:
+
+1. Career statistics (e.g., overall win rate) capture overall team strength, long-term quality and stability.
+   
+Features computed:
+
+    Matches played
+    Career win rate
+    Career draw/loss rate
+    Average goals scored
+    Average goals conceded
+    Goal difference
+
+2. Rolling recent-form features (e.g., last 5 match statistics) capture short-term trends, momentum, or a temporary slump.
+   
+Features computed:
+
+    Last 5 win rate
+    Last 5 average goals scored
+    Last 5 average goals conceded
+    Last 5 goal difference
+
+3. Head-to-head statistics of team pair (meaning how the two teams have performed against each other in previous meetings) are among the strongest predictors in international football and would make the project significantly more realistic.
+   
+Features computed:
+
+    H2H matches played
+    H2H home team win rate
+    H2H away team win rate
+    H2H draw rate
+    H2H average goals for each team
+    H2H goal difference
+
+
+**Steps (main pipeline):**
+
+**A) load_dataset():** It reads cleaned dataset (i.e., results_cleaned.csv), converts date, sorts chronologically.
+
+**B) generate_features():** It generates machine learning features for every match using only historical information (no future information).
+
+    Step 1: initializations:
+    
+    	1.1: Initializes Team Statistics: initialize_team_stats()
+    	  - creates default dictionary that stores cumulative and recent statistics for every team.
+    
+    	1.2: Initializes Head-To-Head (H2H) Statistics: initialize_head_to_head()
+    	  - creates default dictionary that stores H2H statistics for every team pair.
+    
+    Step 2: Process Every Match (Chronological Order):
+    
+        - Step 2.1: Extract Features: create_feature_row(): creates one feature dictionary representing the current match.
+        
+            Internally, it calls:
+      
+            extract_team_features(home_team) - which calculates historical career statistics and then internally calls calculate_recent_statistics() to calculate the statistics for last 5 matches for home_team
+      
+            extract_team_features(away_team) - which calculates historical career statistics and then internally calls calculate_recent_statistics() to calculate the statistics for last 5 matches for away_team
+      
+            extract_head_to_head_features(home_team, away_team) - which calculates historical head-to-head statistics of this team-pair.
+      
+            That means for each team, it retrieves:
+            
+            Career statistics:
+            
+            Matches played
+            Win rate
+            Draw rate
+            Loss rate
+            Average goals scored
+            Average goals conceded
+            Goal difference
+            
+            Recent form (last 5 matches):
+            
+            Last 5 win rate
+            Last 5 average goals scored
+            Last 5 average goals conceded
+            Last 5 goal difference
+            
+            H2H statistics: (of these two teams)
+            
+            H2H matches played
+            H2H home team win rate
+            H2H away team win rate
+            H2H draw rate
+            H2H average goals for each team
+            H2H goal difference
+            
+            The important point here is, all of these statistics are calculated using only matches played before the current match, which prevents data leakage.
+            
+            The result is one dictionary like:
+            
+            {
+                "home_team": "France",
+                "away_team": "Germany",
+                "home_win_rate": 0.62,
+                "away_win_rate": 0.58,
+                ...
+                "target": "Home Win"
+            }
+            
+            This dictionary will become one row of the final machine learning dataset.
+    
+        
+        - Step 2.2: Append this feature dictionary to feature_rows.
+        
+        - Step 2.3: 
+    
+    	      A) Update team statistics: update_team_statistics()
+    	          - After the features for the current match have been created and stored in feature_rows, the historical statistics for each team is updated.    
+    
+                Example:
+                
+                Current match:
+                
+                France 2–1 Germany
+                
+                Before the update:
+                
+                France:
+                Matches = 10
+                Wins = 6
+                Goals = 18
+                
+                After the update:
+                
+                France:
+                Matches = 11
+                Wins = 7
+                Goals = 20
+                
+                These updated statistics will be used when processing the next match involving France.
+    
+            B) Update head to head statistics: update_head_to_head()
+                -  After processing a match, update the Head-to-Head (H2H) record between the two teams so it can be used as historical information for their future meetings. The update happens after feature extraction to prevent data leakage.
+        
+                Example
+                
+                Suppose these are the matches between France and Germany.
+                
+                Match 1 (2018)
+                France 2 - 1 Germany
+                
+                Before this match:
+                
+                H2H Statistics
+                
+                Matches = 0
+                France Wins = 0
+                Germany Wins = 0
+                Draws = 0
+                France Goals = 0
+                Germany Goals = 0
+                
+                Since this is the first meeting, the generated features are:
+                
+                h2h_matches = 0
+                h2h_home_team_win_rate = 0
+                h2h_away_team_win_rate = 0
+                
+                Only after creating the feature row do we update the H2H statistics.
+                
+                The stored statistics become:
+                
+                Matches = 1
+                France Wins = 1
+                Germany Wins = 0
+                Draws = 0
+                France Goals = 2
+                Germany Goals = 1
+                
+                
+                Match 2 (2021)
+                Germany 0 - 0 France
+                
+                Now, when creating features for this match, the model already knows the previous meeting.
+                
+                Generated H2H features become:
+                
+                h2h_matches = 1
+                France Win Rate = 1.0
+                Germany Win Rate = 0.0
+                Draw Rate = 0.0
+                France Avg Goals = 2.0
+                Germany Avg Goals = 1.0
+                
+                Only after feature extraction do we update the H2H statistics again.
+                
+                The updated H2H record becomes:
+                
+                Matches = 2
+                France Wins = 1
+                Germany Wins = 0
+                Draws = 1
+                France Goals = 2
+                Germany Goals = 1
+                
+                
+                Match 3 (2024)
+                France vs Germany
+                
+                Now the generated H2H features are:
+                
+                h2h_matches = 2
+                France Win Rate = 0.50
+                Germany Win Rate = 0.00
+                Draw Rate = 0.50
+                France Avg Goals = 1.0
+                Germany Avg Goals = 0.5
+                
+                These statistics summarize all previous meetings before the current match.
+                
+                
+                Why is this important?
+                
+                Head-to-head statistics capture information that overall team statistics may miss.
+                
+                For example:
+                
+                Overall Win Rate
+                
+                France = 72%
+                Germany = 68%
+                
+                These suggest the teams are similarly strong.
+                
+                However, their direct history may be:
+                
+                Previous Meetings
+                
+                France Wins = 7
+                Germany Wins = 2
+                Draws = 1
+                
+                This indicates that France has historically performed better specifically against Germany, even though both teams have strong overall records.
+                
+                By including H2H features, the model learns patterns specific to each rivalry, which can improve prediction accuracy compared with relying only on overall team performance.
+
+
+    Step 3: Create the Feature DataFrame after every match has been processed. That means: Convert feature_rows -> DataFrame, with this step, the list of feature dictionaries is converted into a pandas DataFrame.
+    
+    Step 4: Return DataFrame
+
+
+**C) print_summary():** displays the summary of feature engineering and the glimpse of engineered features.
+
+**D) save_dataset():** Creates folders if necessary and saves DataFrame to matches_features.csv.
+ 
+**Other functions:**
+      - safe_divide(): this is to prevent divide-by-zero while calculating the statistics.
+      - get_h2h_key(): It create a unique key regardless of home/away team order.
+      
+**Display Output:**
+
+      Feature Engineering is being started...
+      
+      Loading Cleaned Dataset...
+      
+      Loaded 49495 matches.
+      
+      Generating Features...
+      Processed 1000/49495 matches
+      Processed 2000/49495 matches
+      Processed 3000/49495 matches
+      Processed 4000/49495 matches
+      Processed 5000/49495 matches
+      Processed 6000/49495 matches
+      Processed 7000/49495 matches
+      Processed 8000/49495 matches
+      Processed 9000/49495 matches
+      Processed 10000/49495 matches
+      Processed 11000/49495 matches
+      Processed 12000/49495 matches
+      Processed 13000/49495 matches
+      Processed 14000/49495 matches
+      Processed 15000/49495 matches
+      Processed 16000/49495 matches
+      Processed 17000/49495 matches
+      Processed 18000/49495 matches
+      Processed 19000/49495 matches
+      Processed 20000/49495 matches
+      Processed 21000/49495 matches
+      Processed 22000/49495 matches
+      Processed 23000/49495 matches
+      Processed 24000/49495 matches
+      Processed 25000/49495 matches
+      Processed 26000/49495 matches
+      Processed 27000/49495 matches
+      Processed 28000/49495 matches
+      Processed 29000/49495 matches
+      Processed 30000/49495 matches
+      Processed 31000/49495 matches
+      Processed 32000/49495 matches
+      Processed 33000/49495 matches
+      Processed 34000/49495 matches
+      Processed 35000/49495 matches
+      Processed 36000/49495 matches
+      Processed 37000/49495 matches
+      Processed 38000/49495 matches
+      Processed 39000/49495 matches
+      Processed 40000/49495 matches
+      Processed 41000/49495 matches
+      Processed 42000/49495 matches
+      Processed 43000/49495 matches
+      Processed 44000/49495 matches
+      Processed 45000/49495 matches
+      Processed 46000/49495 matches
+      Processed 47000/49495 matches
+      Processed 48000/49495 matches
+      Processed 49000/49495 matches
+      Processed 49495/49495 matches
+      
+      =========== FEATURE ENGINEERING SUMMARY ===========
+      
+      Number of matches : 49495
+      Number of features: 31
+      
+      Feature Columns:
+      
+       - date
+       - home_team
+       - away_team
+       - tournament
+       - neutral
+       - home_matches_played
+       - away_matches_played
+       - home_win_rate
+       - away_win_rate
+       - home_avg_goals
+       - away_avg_goals
+       - home_avg_conceded
+       - away_avg_conceded
+       - home_goal_difference
+       - away_goal_difference
+       - home_last5_win_rate
+       - away_last5_win_rate
+       - home_last5_avg_goals
+       - away_last5_avg_goals
+       - home_last5_avg_conceded
+       - away_last5_avg_conceded
+       - home_last5_goal_difference
+       - away_last5_goal_difference
+       - h2h_matches
+       - h2h_home_team_win_rate
+       - h2h_away_team_win_rate
+       - h2h_draw_rate
+       - h2h_home_avg_goals
+       - h2h_away_avg_goals
+       - h2h_goal_difference
+       - target
+      
+      Preview:
+      
+              date home_team away_team  ... h2h_away_avg_goals  h2h_goal_difference    target
+      0 1872-11-30  Scotland   England  ...           0.000000             0.000000      Draw
+      1 1873-03-08   England  Scotland  ...           0.000000             0.000000  Home Win
+      2 1874-03-07  Scotland   England  ...           2.000000            -1.000000  Home Win
+      3 1875-03-06   England  Scotland  ...           1.333333             0.333333      Draw
+      4 1876-03-04  Scotland   England  ...           1.750000            -0.250000  Home Win
+      
+      [5 rows x 31 columns]
+      
+      Feature dataset saved successfully at: 
+      C:\xxxx\International_Football_Match_Outcome_Probability_Predictor\data\features\matches_features.csv
+      
+      Feature engineering completed successfully.
+
