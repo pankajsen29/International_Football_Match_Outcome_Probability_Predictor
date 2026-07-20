@@ -21,3 +21,11 @@ FEATURES_FILE = FEATURES_DIR / "matches_features.csv"
 
 CLEAN_DIR.mkdir(parents=True, exist_ok=True)
 FEATURES_DIR.mkdir(parents=True, exist_ok=True)
+
+# setting for ML algorithm
+RANDOM_STATE = 42
+
+# used in training loop
+TEST_SIZE = 0.20
+MODEL_DIR = PROJECT_ROOT / "checkpoints"
+MODEL_DIR.mkdir(parents=True, exist_ok=True)

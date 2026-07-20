@@ -5,14 +5,12 @@
 # match outcome prediction. All models are returned in a dictionary so 
 # that the training pipeline can iterate over them and compare their performance.
 ####################################################################
+import src.config as cfg
 
 from sklearn.linear_model import LogisticRegression
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
 from xgboost import XGBClassifier
-
-
-RANDOM_STATE = 42
 
 
 ###########################################################
@@ -24,7 +22,7 @@ def get_models():
         # Logistic Regression
         "Logistic Regression":
             LogisticRegression(
-                random_state=RANDOM_STATE,                
+                random_state=cfg.RANDOM_STATE,                
                 solver="saga",
                 max_iter=1000,
                 n_jobs=-1
@@ -34,7 +32,7 @@ def get_models():
         # Decision Tree
         "Decision Tree":
             DecisionTreeClassifier(
-                random_state=RANDOM_STATE,
+                random_state=cfg.RANDOM_STATE,
                 max_depth=10,
                 min_samples_split=5,
                 min_samples_leaf=2,
@@ -44,7 +42,7 @@ def get_models():
         # Random Forest
         "Random Forest":
             RandomForestClassifier(
-                random_state=RANDOM_STATE,
+                random_state=cfg.RANDOM_STATE,
                 n_estimators=300,
                 max_depth=15,
                 min_samples_split=5,
@@ -56,7 +54,7 @@ def get_models():
         # Gradient Boosting
         "Gradient Boosting":
             GradientBoostingClassifier(
-                random_state=RANDOM_STATE,
+                random_state=cfg.RANDOM_STATE,
                 n_estimators=200,
                 learning_rate=0.05,
                 max_depth=3,
@@ -66,7 +64,7 @@ def get_models():
         # XGBoost
         "XGBoost":
             XGBClassifier(
-                random_state=RANDOM_STATE,
+                random_state=cfg.RANDOM_STATE,
                 objective="multi:softprob",
                 num_class=3,
                 n_estimators=300,
