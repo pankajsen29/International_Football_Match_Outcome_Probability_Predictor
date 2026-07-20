@@ -523,6 +523,7 @@ Features computed:
 **D) save_dataset():** Creates folders if necessary and saves DataFrame to matches_features.csv.
  
 **Other functions:**
+
       - safe_divide(): this is to prevent divide-by-zero while calculating the statistics.
       - get_h2h_key(): It create a unique key regardless of home/away team order.
       
@@ -641,3 +642,167 @@ Features computed:
       
       Feature engineering completed successfully.
 
+
+## 6. Choosing the model:
+
+No single algorithm is universally best for every dataset. Each one has different strengths and assumptions, which allow their performance to be evaluated on the same engineered feature set. Therefore, this predictor project is evaluating several models with different learning strategies. These range from a simple linear model (Logistic Regression) to advanced ensemble methods (Random Forest, Gradient Boosting, and XGBoost). Then it compares and identifies the algorithm which provides the best balance of predictive accuracy, probability estimation, and generalization for football match outcome **(Home Win, Draw, Away Win)** prediction. This comparison also demonstrates how different machine learning approaches perform on the same engineered features.
+
+Below I have included short explanations of all these algorithms about how these work, why one is chosen and what are the parameters to be set for each.
+
+Note: For all these algorithms, a common **RANDOM_STATE (= 42**, need not be specific, any fixed value is fine) is used so that the algorithm makes the same random choices of training samples, producing the same model every time it is trained (assuming the data and parameters are unchanged). Without this, the final model may achieve slightly different accuracy which can make the experiments harder to compare. 
+
+**A) Logistic Regression**
+
+How it works:
+
+Logistic Regression is not a regression algorithm, meaning it doesn’t predict continuous numbers; rather it is a linear classification algorithm that estimates the probability of each match outcome using the Softmax function. It starts with random weights and adjusts them to make the predicted probabilities match the actual labels as closely as possible. It does this by minimizing a loss function called binary cross-entropy (also called log loss), which penalizes confident wrong predictions much more heavily than confident right ones.
+
+Once there is a probability, a threshold (usually 0.5) is picked and then:
+
+    -	Probability ≥ 0.5 => predict class 1
+    -	Probability < 0.5 => predict class 0
+
+Why chosen:
+
+    -	Simple and interpretable baseline model. 
+    -	Produces class probabilities directly. 
+    -	Fast to train and easy to understand. 
+    -	Serves as a benchmark for comparing more complex models. 
+
+Parameters:
+
+    random_state=RANDOM_STATE : Ensures the model produces the same result every time it is trained on the same data and with the same code.  
+    
+    solver="saga" : Optimization algorithm used to minimize the loss function. It is well suited for larger, sparse feature matrices produced by one-hot encoding. Also it is good for multiclass problems (to classify all three outcomes simultaneously (Home Win, Draw, Away Win)). It scales well and supports multinomial logistic regression. 
+    
+    max_iter=1000 : Maximum optimization iterations to ensure convergence.
+    
+    n_jobs=-1 : This allows parallel computation where supported by the solver, making training faster on multicore CPUs.
+
+
+**B) Decision Tree**
+
+How it works:
+
+A decision tree predicts by asking a series of yes/no questions about the features, like a flowchart, until it reaches an answer.
+
+E.g., to decide whether to play tennis today:
+
+    is it raining?
+        o	Yes -> Don't play
+        o	No -> Is it windy?
+              - Yes -> Don't play
+              - No -> Play
+
+That's a decision tree. Each internal node asks a question about one feature, each branch is an answer, and each leaf is a final prediction. At each step, the algorithm looks at all possible questions it could ask (for every feature, every possible split point) and picks the one that best separates the data into "pure" groups.
+
+"Pure" means: after the split, each resulting group is mostly one class (mostly "play" or mostly "don't play"), rather than a 50/50 mess.
+
+Building the Full Tree: 
+
+The algorithm repeats this recursively: for each resulting group, it again looks for the best next split, and keeps going until:
+
+      •	A group is pure (all one class), or
+      •	It hits a stopping rule (e.g., max depth, minimum samples per leaf), this prevents the tree from growing so deep it just memorizes the training data (overfitting).
+
+Making a Prediction: 
+
+To predict on a new student, just walk down the tree answering the questions with that student's feature values until you land on a leaf that leaf's majority class is the prediction.
+
+Why chosen:
+
+    -	Easy to visualize and interpret (we can literally read the logic). 
+    -	no need to scale features,
+    -	handles nonlinear patterns naturally.
+    -	Naturally handles interactions between features. 
+    -	Provides insight into feature importance. 
+
+    -	But prone to overfitting if grown too deep (memorizes noise) – that’s why Random Forest has come.
+
+
+Parameters:
+
+    random_state=RANDOM_STATE : Ensures reproducible tree construction.
+    
+    max_depth=10 : Limits the maximum tree depth to reduce overfitting.
+    
+    min_samples_split=5 : Minimum samples required before splitting a node.
+    
+    min_samples_leaf=2 : Ensures every leaf contains at least two samples for better generalization.
+
+
+**C) Random Forest**
+
+How it works:
+
+First what does "Ensemble" Mean?
+
+An ensemble method combines predictions from multiple models to get a better result than any single model alone.
+
+Random Forest is an ensemble of many decision trees. Instead of building one tree (which is prone to overfitting and instability), we build many trees and let them vote. Each tree is trained on a random subset of the data (i.e., random sample of training data) and features (i.e., at each split in each tree, instead of considering all features to find the best question, the algorithm only considers a random subset of features). The final prediction is obtained by combining the predictions of all trees using majority voting (or averaged probabilities).
+
+Why chosen:
+
+    -	More accurate and robust than a single Decision Tree. 
+    -	Reduces overfitting through ensemble learning. 
+    -	Handles nonlinear relationships effectively. 
+    -	Provides reliable feature importance estimates. 
+
+Parameters:
+
+    random_state=RANDOM_STATE : Produces reproducible results.
+    n_estimators=300 : Number of trees in the forest. More trees generally improve stability.
+    max_depth=15 : Restricts tree depth to prevent overfitting.
+    min_samples_split=5 : Minimum samples required to split a node.
+    min_samples_leaf=2 : Ensures every leaf contains at least two samples for better generalization.
+    n_jobs=-1 : Uses all available CPU cores for parallel training.
+
+**D) Gradient Boosting**
+
+How it works:
+
+Like Random Forests, Gradient Boosting is also an ensemble of decision trees. But it builds trees sequentially rather than independently. Each new tree is trained to correct the errors made by the previous trees. This iterative process gradually improves the model by minimizing the prediction loss.
+
+Why chosen:
+
+    -	Often achieves higher accuracy than Random Forest. 
+    -	Learns complex relationships between features. 
+    -	Produces well-calibrated probability estimates. 
+    -	Strong baseline before using more advanced boosting algorithms. 
+      
+    -	But it is harder to parallelize as it is sequential.
+    -	Also, it has higher overfitting risk if too many trees or the learning rate is too high – that’s why XGBoost has come.
+
+Parameters:
+
+    random_state=RANDOM_STATE : Ensures reproducible training
+    n_estimators=200 : Number of boosting stages (trees).
+    learning_rate=0.05 : Controls how much each tree contributes to the final model. Smaller values usually improve generalization but require more trees.
+    max_depth=3 : Limits the depth of each individual decision tree (weak learner).
+
+
+**E) XGBoost (Extreme Gradient Boosting)**
+
+How it works:
+
+XGBoost ("Extreme Gradient Boosting") is the same core idea as gradient boosting, but an optimized implementation of it. It builds trees sequentially, each correcting the previous one’s errors, but engineered to be faster, more accurate, and more resistant to overfitting. It's not a different algorithm philosophically; it's a highly optimized implementation with extra mathematical refinements. These improvements often lead to better predictive performance and faster training.
+
+Why chosen:
+
+    -	State-of-the-art algorithm for structured/tabular datasets. 
+    -	Excellent predictive performance. 
+    -	Handles complex feature interactions. 
+    -	Efficient implementation with built-in regularization to reduce overfitting. 
+
+Parameters:
+
+    random_state=RANDOM_STATE : Ensures reproducible results.
+    objective="multi:softprob" : Performs multiclass classification and outputs probabilities for each outcome.
+    num_class=3 : Number of target classes (Home Win, Draw, Away Win).
+    n_estimators=300 : Number of boosting trees.
+    learning_rate=0.05 : Controls the contribution of each new tree to the ensemble.
+    max_depth=6 : Maximum depth of each decision tree.
+    subsample=0.8 : Randomly samples 80% of the training data for each tree to reduce overfitting.
+    colsample_bytree=0.8 : Randomly samples 80% of the features when building each tree, improving diversity.
+    eval_metric="mlogloss" : Uses multiclass logarithmic loss to evaluate training performance.
+    tree_method="hist" : Uses the histogram-based tree construction algorithm for faster training on large datasets.
