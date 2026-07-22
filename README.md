@@ -98,7 +98,7 @@ This dataset includes Total 49,393 results of international football matches.
 
 This step is for cleaning and standardizing the raw data.
 
-**File:** dataset_preprocessing.py
+**File:** preprocessing.py
 
 **Outputs:**
     results_cleaned.csv
@@ -645,6 +645,8 @@ Features computed:
 
 ## 6. Choosing the model:
 
+**File:** model.py
+
 No single algorithm is universally best for every dataset. Each one has different strengths and assumptions, which allow their performance to be evaluated on the same engineered feature set. Therefore, this predictor project is evaluating several models with different learning strategies. These range from a simple linear model (Logistic Regression) to advanced ensemble methods (Random Forest, Gradient Boosting, and XGBoost). Then it compares and identifies the algorithm which provides the best balance of predictive accuracy, probability estimation, and generalization for football match outcome **(Home Win, Draw, Away Win)** prediction. This comparison also demonstrates how different machine learning approaches perform on the same engineered features.
 
 Below I have included short explanations of all these algorithms about how these work, why one is chosen and what are the parameters to be set for each.
@@ -806,3 +808,145 @@ Parameters:
     colsample_bytree=0.8 : Randomly samples 80% of the features when building each tree, improving diversity.
     eval_metric="mlogloss" : Uses multiclass logarithmic loss to evaluate training performance.
     tree_method="hist" : Uses the histogram-based tree construction algorithm for faster training on large datasets.
+
+
+## 7. Training pipeline:
+
+**File:** train.py
+
+Part 1: Data loading, feature preparation, train/test split, and building the preprocessing pipeline.
+
+Part 2: Training all models, saving them, and the training pipeline.
+
+**Part 1:**
+
+**A) load_features():** It loads the engineered features from matches_features.csv for the purpose of applying the transformation rules on the features so that the model can learn.
+
+**B) prepare_dataset():** It converts the engineered dataset into the format expected by scikit-learn by separating:
+
+      - input features (X): what the model learns from
+      - and target labels (y): what the model should predict
+
+Step 1: Original dataframe should not be changed, hence a copy of the dataframe is made for the changes to be done next.
+
+Step 2: In the dataset, we have the target labels as {"Home Win", "Draw", "Away Win"}, which are texts and the ML algorithm can't learn from them. Therefore, mapping of target labels to numbers is required, which is defined next.
+
+Step 3: Next the Label encoding happens, meaning the actual replacements of the string target labels with the mapping numbers are done.
+
+Step 4: Then the target column is separated.
+
+Step 5: Then the columns which are not required for training are dropped. 
+
+      - target: it should not be seen during training, 
+      - date: it is not relevant for training. It doesn't directly represent football knowledge.
+
+Step 6: then it returns:
+
+      - X : pandas.DataFrame -> input features
+      - y : pandas.Series -> correct answers
+
+Suppose the original dataset is:
+
+      date		    home_team	  away_team	  home_win_rate	  away_win_rate	  target
+      2022-11-23	Germany		  Japan		    0.71		        0.62		        Away Win
+      2022-11-24	Brazil		  Serbia		  0.81		        0.53		        Home Win
+
+After prepare_dataset():
+
+X (Input Features):
+
+      home_team	  away_team	  home_win_rate	  away_win_rate
+      Germany		  Japan		    0.71		        0.62
+      Brazil		  Serbia		  0.81		        0.53
+
+y (Target Labels):
+
+      target
+      2
+      0
+
+**C) split_dataset():** It divides the dataset into training data and testing data. The purpose is to train the model on one set of matches and evaluate it on unseen matches to measure how well it generalizes.
+
+      - inputs:The function receives: X = Input features, y = Target labels
+      
+      - split process: the dataset is split using the below settings:
+      TEST_SIZE=0.20: meaning 80% of the matches = Training set, 20% of the matches = Testing set
+      shuffle=False: because the order of the matches is important. The idea is to split the time-ordered dataset to train the model using past matches and perform the testing (get the predicttion) for recent or future matches.
+      
+      - returns:
+      X_train: Features used for training.
+      X_test: Features used for testing.
+      y_train: Correct outcomes for the training matches.
+      y_test: Correct outcomes for the testing matches.
+
+**D) build_preprocessor():** data (more precisely few specific types of columns) transformation pipeline is defined here.
+
+steps:
+
+      a) categorical features are separated: as these contain non-numeric values, these need to be converted/encoded to numbers so that ML algorithms can understand. 
+      
+      - One-Hot encoding is applied here, which instead of assigning 1,2,3,4 to the teams like France, Germany, Brazil, Argentina respectively in colimns like home_team or away_team, i.e.,
+      
+      for:
+      home_team	  away_team
+      France		  Germany
+      Brazil		  Argentina
+      
+      to:
+      home_team	  away_team
+      1		        2
+      3		        4
+      
+      which incorrectly suggests Argentina > Brazil > Germany > France;
+      
+      creates separate binary columns to remove any false numerical ordering. e.g.,
+      
+      one match between France and Germany: (categories: France, Germany, Brazil)
+      
+      home_team	  away_team	  tournament
+      France		  Germany		  World Cup
+      
+      gets encoded as below:
+      
+      home_France	  home_Germany	home_Brazil	  away_France	  away_Germany	away_Brazil	  World Cup	  Friendly
+      1		          0		          0		          0		          1		          0		          1		        0
+      
+      That means, instead of using one column containing numbers, it creates one column for every category. So one original column becomes many columns.
+      
+      Note: One thing to notice here is that the number of columns/features increases because each category becomes its own binary feature. These make the model slower a bit, but modern algorithms are all designed to handle datasets with hundreds or even thousands of features.
+      
+      Why handle_unknown="ignore"?
+      
+      - so that the encoding during evaluation or prediction (cause the same preprocessing will be applied) doesn't fail for any unseen category (i.e., for a new team) appeared after the model was trained.
+      
+      b) numerical features are separated: these contain numeric or boolean data, so they don't need encoding.
+      
+      - passthrough: means no transformation is applied.
+      
+      c) Then ColumnTransformer combines all preprocessing rules into a single object.
+
+Note: build_preprocessor() does not transform the data immediately. It creates a reusable set of instructions describing how each type of column should be transformed. Those instructions are later executed automatically inside the scikit-learn Pipeline whenever fit() or predict() is called.
+
+**E) create_pipeline():** It combines all preprocessing steps and the machine learning model into a single object. And with this, I don't have to manually preprocess the data for each model (as my goal is to use multiple models for comparison).
+
+Benefit of having pipeline during the training?
+
+    When I call pipeline.fit(X_train, y_train), internally, scikit-learn performs:
+    Preprocessor.fit(X_train) =>
+    Preprocessor.transform(X_train) =>
+    Model.fit(processed_X_train, y_train)
+    
+     - with one line, three operations happen automatically.
+
+Benefit of having pipeline during the prediction?
+
+    And when I call pipeline.predict(X_test), internally,
+    Preprocessor.transform(X_test) =>
+    Model.predict(processed_X_test)
+    
+     - preprocessing happens automatically before prediction.
+
+**F) save_preprocessor():** In this step, the preprocessor is saved so that it can be used during prediction too.
+
+**G) create_model_preprocessing_pipeline():** It combines all the steps of model preprocessing.
+
