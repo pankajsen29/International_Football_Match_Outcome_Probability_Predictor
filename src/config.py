@@ -29,3 +29,12 @@ RANDOM_STATE = 42
 TEST_SIZE = 0.20
 MODEL_DIR = PROJECT_ROOT / "checkpoints"
 MODEL_DIR.mkdir(parents=True, exist_ok=True)
+
+# Model-specific Preprocessing Configuration
+SCALE_NUMERICAL_FEATURES = {
+    "Logistic Regression": True,
+    "Decision Tree": False, 
+    "Random Forest": False,
+    "Gradient Boosting": False,
+    "XGBoost": False
+}

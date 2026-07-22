@@ -23,8 +23,8 @@ def get_models():
         "Logistic Regression":
             LogisticRegression(
                 random_state=cfg.RANDOM_STATE,                
-                solver="saga",
-                max_iter=1000
+                solver="lbfgs",
+                max_iter=3000
             ),
 
 
