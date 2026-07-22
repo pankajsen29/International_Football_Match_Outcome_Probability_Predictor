@@ -2,7 +2,7 @@
 from src.preprocess import preprocess_dataset
 from src.feature_engineering import feature_engineering_pipeline
 from src.model import print_available_models
-from src.train import create_model_preprocessing_pipeline
+from src.train import train_pipeline
 # Step 1: cleans and standardizes the data
 #preprocess_dataset()
 
@@ -12,5 +12,5 @@ from src.train import create_model_preprocessing_pipeline
 # Step 3: defines the ML models
 print_available_models()
 
-# Step 4: builds the model preprocessor pipeline
-create_model_preprocessing_pipeline
+# Step 4: execute train pipeline
+train_pipeline()

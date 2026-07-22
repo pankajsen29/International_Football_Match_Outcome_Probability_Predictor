@@ -14,7 +14,7 @@ from xgboost import XGBClassifier
 
 
 ###########################################################
-# Returns a dictionary (model name : sklearn estimator) containing 
+# Returns a dictionary (model_name : sklearn_estimator) containing 
 # all machine learning models used in this project 
 ########################################################
 def get_models():
@@ -24,8 +24,7 @@ def get_models():
             LogisticRegression(
                 random_state=cfg.RANDOM_STATE,                
                 solver="saga",
-                max_iter=1000,
-                n_jobs=-1
+                max_iter=1000
             ),
 
 

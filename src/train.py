@@ -7,9 +7,10 @@
 #     - Separates input features and target
 #     - Split training/testing datasets
 #     - Build preprocessing pipeline
+# Part 2:
+#     - Train all machine learning models.
+#     - Save every trained pipeline.
 ####################################################################
-
-import os
 
 import joblib
 import pandas as pd
@@ -20,7 +21,7 @@ from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import OneHotEncoder
 
 import src.config as cfg
-
+from src.model import get_models
 
 # Loads engineered feature dataset.
 # returns: pandas.DataFrame
@@ -139,24 +140,48 @@ def create_pipeline(preprocessor, model):
     return pipeline
 
 
-# Save Preprocessor
-def save_preprocessor(preprocessor):
-    save_path = os.path.join(cfg.MODEL_DIR, "preprocessor.pkl")
+# Train all machine learning models.
+# Returns the dictionary containing trained sklearn Pipelines.
+def train_models(preprocessor, X_train, y_train):
+    print("\nTraining Models...")
 
-    joblib.dump(preprocessor, save_path)
-    print(f"\nPreprocessor saved at: {save_path}")
+    models = get_models()
+    trained_models = {}
 
+    for model_name, model in models.items():
+        print(f"\nTraining {model_name}...")
+        pipeline = create_pipeline(preprocessor, model)
+        pipeline.fit(X_train, y_train)
+        trained_models[model_name] = pipeline
+        print("Completed.")
 
-# pipeline 1: includes data loading, feature preparation, train/test split, and building the preprocessor
-def create_model_preprocessing_pipeline():
+    return trained_models
 
+# Save every trained pipeline.
+def save_models(trained_models):
+    print("\nSaving Models...")
+
+    for model_name, pipeline in trained_models.items():
+        filename = model_name.lower().replace(" ", "_") + ".pkl"
+        save_path = cfg.MODEL_DIR / filename
+        joblib.dump(pipeline, save_path)
+        print(f"{model_name} Saved at {save_path}")
+
+# Complete Training Pipeline
+def train_pipeline():
+
+    # part 1: 
     dataframe = load_features(cfg.FEATURES_FILE)
-
     X, y = prepare_dataset(dataframe)
-
     X_train, X_test, y_train, y_test = split_dataset(X, y)
-
     preprocessor = build_preprocessor(X_train)
 
-    save_preprocessor(preprocessor)
+    # part 2:
+    trained_models = train_models(preprocessor, X_train, y_train)
+    save_models(trained_models)
+
+    print("\nTraining is finished successfully...")
+
+    return (trained_models, X_test, y_test)
+
 
