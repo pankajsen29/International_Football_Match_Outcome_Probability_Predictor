@@ -675,11 +675,9 @@ Parameters:
 
     random_state=RANDOM_STATE : Ensures the model produces the same result every time it is trained on the same data and with the same code.  
     
-    solver="saga" : Optimization algorithm used to minimize the loss function. It is well suited for larger, sparse feature matrices produced by one-hot encoding. Also it is good for multiclass problems (to classify all three outcomes simultaneously (Home Win, Draw, Away Win)). It scales well and supports multinomial logistic regression. 
+    solver="lbfgs" : Optimization algorithm used to minimize the loss function. It stands for "Limited-memory Broyden–Fletcher–Goldfarb–Shanno". It is one of the most commonly used optimization algorithms for Logistic Regression in scikit-learn. Benefits of this include: Fast convergence, excellent for small and medium datasets and good default for multiclass classification.
     
-    max_iter=1000 : Maximum optimization iterations to ensure convergence.
-    
-    n_jobs=-1 : This allows parallel computation where supported by the solver, making training faster on multicore CPUs.
+    max_iter=3000 : Maximum optimization iterations to ensure convergence.
 
 
 **B) Decision Tree**
@@ -809,14 +807,24 @@ Parameters:
     eval_metric="mlogloss" : Uses multiclass logarithmic loss to evaluate training performance.
     tree_method="hist" : Uses the histogram-based tree construction algorithm for faster training on large datasets.
 
+**Display Output:**
+
+      Available Models:
+      
+       - Logistic Regression
+       - Decision Tree
+       - Random Forest
+       - Gradient Boosting
+       - XGBoost
+
 
 ## 7. Training pipeline:
 
 **File:** train.py
 
-Part 1: Data loading, feature preparation, train/test split, and building the preprocessing pipeline.
+Part 1: Data loading, feature preparation, train/test split;
 
-Part 2: Training all models, saving them, and the training pipeline.
+Part 2: and then for each ML model: building the preprocessing pipeline, Training pipeline, training, and saving of the trained pipeline.
 
 **Part 1:**
 
@@ -879,11 +887,18 @@ y (Target Labels):
       y_train: Correct outcomes for the training matches.
       y_test: Correct outcomes for the testing matches.
 
-**D) build_preprocessor():** data (more precisely few specific types of columns) transformation pipeline is defined here.
+**Part 2:**
+
+**D) get_feature_category_details():** It separates the below feature categories and displays the details used for building the preprocessor (explained next) for specific model:
+
+      - Categorical Features: ["home_team", "away_team", "tournament"] 
+      - Numerical Features
+
+**E) build_preprocessor():** data (more precisely few specific types of columns) transformation pipeline is defined here.
 
 steps:
 
-      a) categorical features are separated: as these contain non-numeric values, these need to be converted/encoded to numbers so that ML algorithms can understand. 
+      a) For categorical features: as these contain non-numeric values, these need to be converted/encoded to numbers so that ML algorithms can understand. 
       
       - One-Hot encoding is applied here, which instead of assigning 1,2,3,4 to the teams like France, Germany, Brazil, Argentina respectively in colimns like home_team or away_team, i.e.,
       
@@ -919,15 +934,16 @@ steps:
       
       - so that the encoding during evaluation or prediction (cause the same preprocessing will be applied) doesn't fail for any unseen category (i.e., for a new team) appeared after the model was trained.
       
-      b) numerical features are separated: these contain numeric or boolean data, so they don't need encoding.
+      b) For numerical features: as these contain numeric or boolean data, they don't need encoding, instead scaling is added.
       
-      - passthrough: means no transformation is applied.
+      - StandardScaler(): for "Logistic Regression", which helps Logistic Regression converge much faster.
+      - otherwise "passthrough": means no transformation is applied.
       
       c) Then ColumnTransformer combines all preprocessing rules into a single object.
 
 Note: build_preprocessor() does not transform the data immediately. It creates a reusable set of instructions describing how each type of column should be transformed. Those instructions are later executed automatically inside the scikit-learn Pipeline whenever fit() or predict() is called.
 
-**E) create_pipeline():** It combines all preprocessing steps and the machine learning model into a single object. And with this, I don't have to manually preprocess the data for each model (as my goal is to use multiple models for comparison).
+**F) create_training_pipeline():** It combines all preprocessing steps and the machine learning model into a single object. And with this, I don't have to manually preprocess the data for each model (as my goal is to use multiple models for comparison).
 
 Benefit of having pipeline during the training?
 
@@ -946,7 +962,81 @@ Benefit of having pipeline during the prediction?
     
      - preprocessing happens automatically before prediction.
 
-**F) save_preprocessor():** In this step, the preprocessor is saved so that it can be used during prediction too.
+**G) train_models():** for each model, it builds the preprocessor, builds the training pipeline and the actual training via fit pipeline:
 
-**G) create_model_preprocessing_pipeline():** It combines all the steps of model preprocessing.
+        - get_models() from model.py to load all models: LogisticRegression, DecisionTreeClassifier, RandomForestClassifier, GradientBoostingClassifier, XGBClassifier
+        - get_feature_category_details()
+        - and then for each model:
+              - builds the preprocessor specific to that model,
+              - creates the training pipeline
+              - fit pipeline
+              - stores Trained Pipeline
 
+**H) save_models():** Saves every trained pipeline.
+
+**I) train_pipeline():** It combines all the steps of entire model training loop:
+
+        - load_features(): Loads the dataset matches_features.csv
+        - prepare_dataset()
+        - split_dataset()
+        - train_models()
+        - Save all trained pipelines (.pkl)
+
+**Display Output:**
+
+      Loading feature dataset...
+      Loaded 49495 matches
+      
+      Preparing dataset...
+      Number of features : 29
+      Number of samples  : 49495
+      
+      Splitting dataset...
+      Training Matches : 39596
+      Testing Matches  : 9899
+      
+      ========== Training Models ============
+      
+      Feature category details for building specific preprocessing steps...
+      
+      Categorical Features:
+        home_team
+        away_team
+        tournament
+      
+      Numerical Features:
+      26
+      
+      1: Training Logistic Regression...
+      - Building preprocessing pipeline...
+      - Building training pipeline...
+      - Training completed for Logistic Regression.
+      
+      2: Training Decision Tree...
+      - Building preprocessing pipeline...
+      - Building training pipeline...
+      - Training completed for Decision Tree.
+      
+      3: Training Random Forest...
+      - Building preprocessing pipeline...
+      - Building training pipeline...
+      - Training completed for Random Forest.
+      
+      4: Training Gradient Boosting...
+      - Building preprocessing pipeline...
+      - Building training pipeline...
+      - Training completed for Gradient Boosting.
+      
+      5: Training XGBoost...
+      - Building preprocessing pipeline...
+      - Building training pipeline...
+      - Training completed for XGBoost.
+      
+      Saving Models...
+      Logistic Regression Saved at C:\xxx\International_Football_Match_Outcome_Probability_Predictor\checkpoints\logistic_regression.pkl
+      Decision Tree Saved at C:\xxx\International_Football_Match_Outcome_Probability_Predictor\checkpoints\decision_tree.pkl
+      Random Forest Saved at C:\xxx\International_Football_Match_Outcome_Probability_Predictor\checkpoints\random_forest.pkl
+      Gradient Boosting Saved at C:\xxx\International_Football_Match_Outcome_Probability_Predictor\checkpoints\gradient_boosting.pkl
+      XGBoost Saved at C:\xxx\International_Football_Match_Outcome_Probability_Predictor\checkpoints\xgboost.pkl
+      
+      Training is finished successfully...
