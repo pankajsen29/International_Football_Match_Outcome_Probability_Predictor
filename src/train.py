@@ -48,13 +48,17 @@ def prepare_dataset(dataframe):
     target_mapping = {"Home Win": 0, "Draw": 1, "Away Win": 2}
 
     # Label encoding: replaces every target value with the mapping numbers
-    dataframe["target"] = dataframe["target"].map(target_mapping)
+    dataframe[cfg.TARGET_COLUMN] = dataframe[cfg.TARGET_COLUMN].map(target_mapping)
 
+    # verify that every label was recognized (example: suppose one row accidentally contains "Home win" instead of "Home Win", .map() above will produce NaN)
+    if dataframe[cfg.TARGET_COLUMN].isnull().any():
+        raise ValueError("Unknown target labels found.")
+    
     # separates the target
-    y = dataframe["target"]
+    y = dataframe[cfg.TARGET_COLUMN]
 
     # Drop columns NOT used (target: it is separated and should not be seen during training, date: is not relevant) for training
-    columns_to_drop = ["target", "date"]
+    columns_to_drop = [cfg.TARGET_COLUMN, "date"]
     X = dataframe.drop(columns=columns_to_drop)
 
     print(f"Number of features : {X.shape[1]}")
@@ -84,6 +88,7 @@ def split_dataset(X, y):
     return X_train, X_test, y_train, y_test
 
 
+# Displays feature types useful for building the preprocessor for specific model
 def get_feature_category_details(X_train):
     print("\nFeature category details for building specific preprocessing steps...")
     # these columns contain categorries instead of numeric values 

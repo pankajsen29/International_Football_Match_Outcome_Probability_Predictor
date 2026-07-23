@@ -22,6 +22,8 @@ FEATURES_FILE = FEATURES_DIR / "matches_features.csv"
 CLEAN_DIR.mkdir(parents=True, exist_ok=True)
 FEATURES_DIR.mkdir(parents=True, exist_ok=True)
 
+TARGET_COLUMN = "target"
+
 # setting for ML algorithm
 RANDOM_STATE = 42
 
