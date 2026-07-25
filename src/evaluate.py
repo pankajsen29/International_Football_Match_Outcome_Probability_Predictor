@@ -275,4 +275,6 @@ def evaluate_pipeline():
 
     print("\nEvaluation completed successfully.")
 
+    return results_df
+
 
