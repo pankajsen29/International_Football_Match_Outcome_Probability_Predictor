@@ -40,3 +40,12 @@ SCALE_NUMERICAL_FEATURES = {
     "Gradient Boosting": False,
     "XGBoost": False
 }
+
+# Model display name mapping
+MODEL_DISPLAY_NAMES = {
+    "logistic_regression": "Logistic Regression",
+    "decision_tree": "Decision Tree",
+    "random_forest": "Random Forest",
+    "gradient_boosting": "Gradient Boosting",
+    "xgboost": "XGBoost"
+}
