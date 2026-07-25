@@ -1040,3 +1040,177 @@ Benefit of having pipeline during the prediction?
       XGBoost Saved at C:\xxx\International_Football_Match_Outcome_Probability_Predictor\checkpoints\xgboost.pkl
       
       Training is finished successfully...
+
+## 8. Model Evaluation:
+
+This step evaluates the models on the test dataset by computing the metrices like accuracy, precision, recall, F1 Score, log loss etc.
+It then chooses log loss as primary ranking metric (as the goal of this project is to find the match outcome probabilities and not to predict the exact correct outcome) to find the best performing model based on this metric.
+
+**File:** evaluate.py
+
+**Steps:**
+
+The evaluation is done in below 2 phases:
+
+      Phase 1: it includes the dataset preparation pipeline:
+      
+      A) load_features(): it loads engineered feature dataset and returns pandas.DataFrame.
+      
+      B) prepare_dataset(): It separates input features (X) and target labels (y) just the same way it was done during training phase.
+           It returns:
+           X : pandas.DataFrame -> input features
+           y : pandas.Series -> correct answers
+           
+      C) split_dataset(): This function splits dataset into training and testing datasets. The important points here are:
+           - I DO NOT shuffle.
+           - Football prediction is a time-series style problem and hence,
+               - Older matches are used for training.
+               - Newer matches are used for testing.
+           
+           Returns:
+             X_train
+             X_test
+             y_train
+             y_test
+             
+      D) prepare_test_data(): This is the complete dataset preparation pipeline by combining the above functions.
+
+      Note: No preprocessing is done here, as every saved pipeline (to be loaded in next phase) already contains (preprocessor + classifier).
+      
+      Phase 2: this phase includes the actual evaluation of the trained models and computation of performace metrices:
+      
+      E) load_models(): It loads all trained model pipelines from the models directory and returns a dictionary containing all trained pipelines.
+      
+      F) evaluate_model(): This evaluates a single trained model by predicting the most likely class, the class probabilities and by computing the standard evaluation metrices.
+           Args taken:
+             - model_name (str): Name of the model,
+             - pipeline: Trained sklearn pipeline,
+             - X_test (DataFrame): Test features,
+             - y_test (Series): True labels,
+           
+           And it prints all these below evaluation metrices (for each model passed) and returns a dictionary of the computed metrices each time:
+             - Accuracy: It measures the percentage of correctly predicted matches.
+             - Precision: It tells when it predicts a class, what is the percentage of those predictions are correct on average across the three classes.
+             - Recall:  it measures the ability of the model to correctly find all actual positive events (Hime Win, Away Win, Draw) out of all the times those events truly happened.
+             - F1 Score: This is the balanced measure of precision and recall.
+             - Log Loss: The "Log Loss" score indicates which model produces the best probability estimates.
+
+      G) evaluate_all_models(): This function first loads the models (using load_models() function) and then evaluates each of the loaded models (by using evaluate_model() function). It rceives the evaluation metrices for each. It then sorts the models based on "Log Loss" metric in ascending order to indicate the best performing model as the primary goal of this predictor project is to predict match outcome probabilities rather than just the most likely class. 
+
+        Why?
+        - Accuracy only checks whether the predicted class is correct.
+        - Log Loss evaluates how good the predicted probabilities are.
+        
+        For example, two models predicting a France vs Germany match:
+        
+        Model		  Home Win	Draw		Away Win	Correct?
+        Model A		0.99		  0.005		0.005		  (Yes)
+        Model B		0.55		  0.25		0.20		  (Yes)
+        
+        Both have the same accuracy, but Model B's probabilities are generally more realistic and better calibrated. Log Loss rewards models that assign sensible confidence levels rather than being overconfident.
+                
+      H) print_summary(): It displays all the computed metrices for all the models in tabular format as the model comparison overview.
+      
+      The winners based on each of the metric are as below:
+      
+      Metric	    Winner
+      Accuracy	  Logistic Regression (58.22%)
+      Precision	  Logistic Regression (50.56%)
+      Recall	    Logistic Regression (50.04%)
+      F1	        Logistic Regression (48%)
+      Log Loss	  XGBoost (90.34%)
+
+      But it prints XGBoost is the best model (based on Log Loss metric for the reason explained above). Because, although Logistic Regression achieved the highest classification accuracy (58.22%), XGBoost achieved the lowest Log Loss (0.9034). Since this project focuses on predicting match outcome probabilities rather than only the most likely outcome, Log Loss was selected as the primary evaluation metric. Therefore, XGBoost is chosen as the best-performing model.
+      
+       Conclusion from the evaluation: Overall, 58% accuracy is considered good, because for football prediction:
+          - Random guessing (3 classes) ≈ 33%
+          - Professional betting models often achieve 55–65% depending on the league and prediction task.
+      
+      So the model is significantly better than random guessing.
+      
+      But from the results, below points can be drawn:
+            1) feature engineering is good. Even a simple Logistic Regression performs almost as well as XGBoost, suggesting the engineered features carry a lot of predictive information.
+            2) There is probably more performance to gain from better features than from changing algorithms. Adding stronger features (e.g., Elo ratings, FIFA rankings etc.) is likely to produce a larger improvement than switching between these classifiers.
+      
+      Therefore, with hyperparameter tuning, richer features (such as Elo or FIFA rankings), and time-series-aware model selection, it can realistically improve its predictive performance, which I would consider as futute enhancements.
+
+      I) evaluate_pipeline(): This function combines all the functions of phase 1 and 2 above, which is actually the entire evaluation pipeline.
+          
+**Display Output:**
+
+      ======= Model Evaluation ============
+      
+      Loading feature dataset...
+      Loaded 49495 matches
+      
+      Preparing dataset...
+      Number of features : 29
+      Number of samples  : 49495
+      
+      Splitting dataset...
+      Training Matches : 39596
+      Testing Matches  : 9899
+      
+      Loading trained models...
+      Loaded: Decision Tree
+      Loaded: Gradient Boosting
+      Loaded: Logistic Regression
+      Loaded: Random Forest
+      Loaded: XGBoost
+      
+      Total Models Loaded: 5
+      
+      Evaluating All Models...
+      
+      Evaluating Decision Tree:
+      Accuracy : 0.5407
+      Precision: 0.4522
+      Recall   : 0.4475
+      F1 Score : 0.4195
+      Log Loss : 1.8056
+      
+      Evaluating Gradient Boosting:
+      Accuracy : 0.5764
+      Precision: 0.4958
+      Recall   : 0.4770
+      F1 Score : 0.4335
+      Log Loss : 0.9129
+      
+      Evaluating Logistic Regression:
+      Accuracy : 0.5822
+      Precision: 0.5056
+      Recall   : 0.5004
+      F1 Score : 0.4800
+      Log Loss : 0.9048
+      
+      Evaluating Random Forest:
+      Accuracy : 0.5682
+      Precision: 0.3876
+      Recall   : 0.4550
+      F1 Score : 0.4020
+      Log Loss : 0.9283
+      
+      Evaluating XGBoost:
+      Accuracy : 0.5812
+      Precision: 0.4949
+      Recall   : 0.4864
+      F1 Score : 0.4461
+      Log Loss : 0.9034
+      
+      Model Comparison:
+                       Model  Accuracy  Precision  Recall  F1 Score  Log Loss
+      0              XGBoost    0.5812     0.4949  0.4864    0.4461    0.9034
+      1  Logistic Regression    0.5822     0.5056  0.5004    0.4800    0.9048
+      2    Gradient Boosting    0.5764     0.4958  0.4770    0.4335    0.9129
+      3        Random Forest    0.5682     0.3876  0.4550    0.4020    0.9283
+      4        Decision Tree    0.5407     0.4522  0.4475    0.4195    1.8056
+      
+      Best Model (Primary Ranking Metric = Log Loss)
+      -------------------------------------------------
+      Model    : XGBoost
+      Accuracy : 0.5812
+      F1 Score : 0.4461
+      Log Loss : 0.9034
+      
+      Evaluation completed successfully.
+
