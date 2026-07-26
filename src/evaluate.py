@@ -184,6 +184,7 @@ def evaluate_model(model_name, pipeline, X_test, y_test):
 
     return {
         "Model": model_name,
+        "Pipeline": pipeline,
         "Accuracy": accuracy,
         "Precision": precision,
         "Recall": recall,
@@ -275,6 +276,6 @@ def evaluate_pipeline():
 
     print("\nEvaluation completed successfully.")
 
-    return results_df
+    return (results_df, detailed_results, X_test, y_test)
 
 

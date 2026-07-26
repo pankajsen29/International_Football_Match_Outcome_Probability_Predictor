@@ -4,7 +4,7 @@ from src.feature_engineering import feature_engineering_pipeline
 from src.model import print_available_models
 from src.train import train_pipeline
 from src.evaluate import evaluate_pipeline
-from src.visualization import plot_model_comparison
+from src.visualization import visualization_pipeline
 
 # Step 1: cleans and standardizes the data
 #preprocess_dataset()
@@ -19,7 +19,7 @@ from src.visualization import plot_model_comparison
 #train_pipeline()
 
 # Step 5: execute evaluate pipeline
-results_df = evaluate_pipeline()
+results_df, detailed_results, X_test, y_test =  evaluate_pipeline()
 
 # Step 6: visualization of the evaluation results
-plot_model_comparison(results_df)
+visualization_pipeline(results_df, detailed_results, y_test)
