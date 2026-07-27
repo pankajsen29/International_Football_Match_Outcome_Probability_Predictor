@@ -49,3 +49,8 @@ MODEL_DISPLAY_NAMES = {
     "gradient_boosting": "Gradient Boosting",
     "xgboost": "XGBoost"
 }
+
+# visualization settings
+EVALUATION_RESULTS_DIR = PROJECT_ROOT / "results"
+SAVE_FIGURES = True
+SHOW_FIGURES = False # enable only during debugging

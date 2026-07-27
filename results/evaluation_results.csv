@@ -1,0 +1,6 @@
+Model,Accuracy,Precision,Recall,F1 Score,Log Loss
+XGBoost,0.5812,0.4949,0.4864,0.4461,0.9034
+Logistic Regression,0.5822,0.5056,0.5004,0.48,0.9048
+Gradient Boosting,0.5764,0.4958,0.477,0.4335,0.9129
+Random Forest,0.5682,0.3876,0.455,0.402,0.9283
+Decision Tree,0.5407,0.4522,0.4475,0.4195,1.8056

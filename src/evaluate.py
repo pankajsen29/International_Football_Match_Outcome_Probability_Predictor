@@ -254,6 +254,15 @@ def print_summary(results_df):
     print(f"Log Loss : {best_model['Log Loss']:.4f}")
 
 
+# Save the evaluation summary to a CSV file.
+def save_evaluation_results(results_df):
+    print("\nSaving evaluation results...")
+
+    save_path = cfg.EVALUATION_RESULTS_DIR / "evaluation_results.csv"
+    results_df.round(4).to_csv(save_path, index=False)
+
+    print(f"Evaluation results saved at: {save_path}")
+
 # main evaluate pipeline
 def evaluate_pipeline():
     print("\n======= Model Evaluation ============")
@@ -273,6 +282,9 @@ def evaluate_pipeline():
 
     # Step 4: Print evaluation summary
     print_summary(results_df)
+
+    # Step 5: Save evaluation results to CSV
+    save_evaluation_results(results_df)
 
     print("\nEvaluation completed successfully.")
 
