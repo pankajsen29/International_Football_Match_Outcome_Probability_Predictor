@@ -1244,11 +1244,49 @@ This step plots various visualization figures from the evaluation summary for ea
 
       
       C) ROC Curve: plot_roc_curve()
-      It plots multiclass ROC curve (one-vs-rest) which shows probability discrimination.
+      It plots multiclass ROC curve (one-vs-rest) which shows probability discrimination. It measures how well the model can distinguish one outcome from the others.
 
 <img width="2070" height="1765" alt="roc_curve" src="https://github.com/user-attachments/assets/31cda407-6e48-4675-bf88-eaf7aecf03d9" />
 
-      
+      From the figure we can see:
+        Away Win: AUC = 0.780 (best)
+        Home Win: AUC = 0.764 
+        Draw: AUC = 0.606 (weakest)
+
+        Hint: AUC (Area Under Curve): The probability that the model ranks a randomly chosen positive example higher than a randomly chosen negative example. For example, for Home Win (AUC = 0.764):
+        Suppose we randomly pick:
+        Match A -> actually Home Win
+        Match B -> actually NOT Home Win
+        There is approximately a 76.4% chance that XGBoost assigns a higher Home Win probability to Match A than Match B.
+  
+        Interpretation of each class:
+        Home Win (AUC = 0.764): The blue curve is well above the diagonal.
+        -> Good discrimination ability.
+        -> The model can distinguish Home Wins from non-Home Wins fairly well.
+        
+        Away Win (AUC = 0.780): The green curve is the highest.
+        -> Best performing class.
+        -> The model is slightly better at identifying Away Wins than Home Wins.
+        
+        Draw (AUC = 0.606): The orange curve is much closer to the diagonal.
+        -> Weak discrimination ability.
+        -> The model struggles to separate Draws from non-Draws.
+        
+        This is very common in football prediction because draws are usually difficult to predict and often have fewer clear patterns than wins.
+        
+        Conclusion:
+        XGBoost shows good discriminatory power for Home Wins (AUC = 0.764) and Away Wins (AUC = 0.780), indicating that the model can reliably distinguish these outcomes from other match results. However, Draws remain challenging to predict (AUC = 0.606), suggesting that additional features or alternative modeling approaches may be needed to improve draw prediction performance.
+        
+        Is this satisfactory?:
+        For an international football match prediction project:
+        AUC > 0.75  -> Good
+        AUC 0.65-0.75 -> Reasonable
+        AUC ~0.60 -> Weak but still better than random
+        AUC = 0.50 -> Random guessing
+        
+        Home Win and Away Win performance are good, while Draw prediction is the main area for future improvement. This aligns with the earlier results where overall accuracy was around 58%, which is a realistic result for football outcome prediction.
+
+
       D) Calibration Curve: plot_calibration_curve()
           Args:
           model_name (str): Name of the model.
@@ -1257,7 +1295,51 @@ This step plots various visualization figures from the evaluation summary for ea
           
           It plots calibration curves for multiclass classification using a One-vs-Rest approach. This tells whether the predicted probabilities can be trusted. It basically shows whether predicted probabilities like 70% Home Win actually correspond to events happening about 70% of the time.
 
+          Example:
+          Suppose XGBoost predicts ~80% Home Win probability for 100 different matches in the test set:
+          Match 1:  Team A vs Team B -> Home Win = 82%
+          Match 2:  Team C vs Team D -> Home Win = 79%
+          Match 3:  Team E vs Team F -> Home Win = 81%
+          ...
+          Match 100: Team X vs Team Y -> Home Win = 80%
+          
+          If the model is perfectly calibrated, then about 80 of those 100 matches should actually have been home wins. That's what the calibration curve compares: predicted probability (what the model predicted) versus observed frequency (what actually happened).
+                    
+          i) How to interpret the curve (in general):
+          
+          Suppose the graph for Home Win looks like this:
+
+<img width="414" height="329" alt="image" src="https://github.com/user-attachments/assets/d485ac4d-9531-402c-8847-3873e7cb7b13" />
+
+          The dashed diagonal represents perfect calibration.
+
+          If the curve is close to the diagonal -> The probabilities are reliable.
+          e.g., Predicted 70%  -> Actually happens about 70% of the time
+          
+          If the curve is below the diagonal -> The model is overconfident.
+          e.g.,
+          Predicts 90% -> Actually happens 70%
+          => It is assigning probabilities that are too high.
+          
+          If the curve is above the diagonal -> The model is underconfident.
+          e.g.,
+          Predicts 60% -> Actually happens 80%
+          => The model is more accurate than its confidence suggests.
+          
+          
+          ii) The generated curve:
+
 <img width="2370" height="1765" alt="calibration_curve" src="https://github.com/user-attachments/assets/6f4436e6-ed98-4999-b5e1-611a3432d70f" />
+
+          iii) Interpretation of the generated curve:
+          
+          XGBoost calibration curve looks reasonably well calibrated overall. It tells:
+          
+          Home Win: The curve stays quite close to the diagonal = good calibration. XGBoost's Home Win probabilities are generally reliable.
+          Away Win: The curve is mostly above the diagonal, especially around 0.5 – 0.75 = the model is somewhat underconfident for Away Win.
+          Draw: The curve falls below the diagonal at higher probabilities = the model tends to be overconfident when predicting Draw.
+          
+          XGBoost demonstrates generally good probability calibration, particularly for Home Win and Away Win. However, the Draw probabilities show some overconfidence, indicating that the model's probability estimates for draws could be improved.
 
       
       E) Feature Importance: plot_feature_importance()
