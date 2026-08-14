@@ -1134,7 +1134,13 @@ The evaluation is done in below 2 phases:
       
       Therefore, with hyperparameter tuning, richer features (such as Elo or FIFA rankings), and time-series-aware model selection, it can realistically improve its predictive performance, which I would consider as futute enhancements.
 
-      I) evaluate_pipeline(): This function combines all the functions of phase 1 and 2 above, which is actually the entire evaluation pipeline.
+      I) save_evaluation_results(): This function saves the evaluation summary to a CSV file (evaluation_results.csv) in "results" folder. 
+      
+      This is useful for mainly two reasons:
+         - to compare the models without rerunning the evaluation.
+         - and to load the results later for plotting or analysis.
+   
+      J) evaluate_pipeline(): This function combines all the functions of phase 1 and 2 above, which is actually the entire evaluation pipeline.
           
 **Display Output:**
 
@@ -1213,4 +1219,58 @@ The evaluation is done in below 2 phases:
       Log Loss : 0.9034
       
       Evaluation completed successfully.
+
+
+## 8. Visualization:
+
+This step plots various visualization figures from the evaluation summary for easy understanding of the model's performance.
+
+**File:** visualization.py
+
+**Figures:**
+
+      A) Model comparison: plot_model_comparison()
+      It plots model comparison bar chart for easy comparison of all the models.
+
+<img width="2970" height="1766" alt="model_comparison" src="https://github.com/user-attachments/assets/254fa3d8-6319-4fe3-b828-d88f09c2799a" />
+
+      
+      Below visualizations are added only for the best model (XGBoost - the one with the lowest Log Loss):
+      
+      B) Confusion Matrix: plot_confusion_matrix()
+      It plots the confusion matrix for standard classification evaluation.
+
+<img width="1779" height="1770" alt="confusion_matrix" src="https://github.com/user-attachments/assets/974b1fd3-a448-4757-bf0f-691adc188565" />
+
+      
+      C) ROC Curve: plot_roc_curve()
+      It plots multiclass ROC curve (one-vs-rest) which shows probability discrimination.
+
+<img width="2070" height="1765" alt="roc_curve" src="https://github.com/user-attachments/assets/31cda407-6e48-4675-bf88-eaf7aecf03d9" />
+
+      
+      D) Calibration Curve: plot_calibration_curve()
+          Args:
+          model_name (str): Name of the model.
+          y_test (Series): True labels.
+          y_prob (ndarray): Predicted probabilities.
+          
+          It plots calibration curves for multiclass classification using a One-vs-Rest approach. This tells whether the predicted probabilities can be trusted. It basically shows whether predicted probabilities like 70% Home Win actually correspond to events happening about 70% of the time.
+
+<img width="2370" height="1765" alt="calibration_curve" src="https://github.com/user-attachments/assets/6f4436e6-ed98-4999-b5e1-611a3432d70f" />
+
+      
+      E) Feature Importance: plot_feature_importance()
+        Feature Importance (essential for tree-based models) indicates which features influenced the prediction most. This is only applicable to Random Forest, Gradient Boosting, XGBoost
+        
+        Below figure is for XGBoost:
+
+<img width="2964" height="1765" alt="feature_importance" src="https://github.com/user-attachments/assets/a8082d19-9efe-40e4-978c-08109dbb24cb" />
+
+
+      Also, two additional configuration flags are added:
+      
+      SAVE_FIGURES: this is set to "True" by default, which means that the visualization figures are saved (in "results" folder) every time these are generated.
+      
+      SHOW_FIGURES: this is set to "False" by default, which means that the visualization figures are not displayed or popped-up during a normal execution. This can be configured to "True" only during debugging for inspection.
 
