@@ -1230,19 +1230,42 @@ This step plots various visualization figures from the evaluation summary for ea
 **Figures:**
 
       A) Model comparison: plot_model_comparison()
-      It plots model comparison bar chart for easy comparison of all the models.
+      It plots model accuracy comparison bar chart for easy comparison of all the models.
 
 <img width="2970" height="1766" alt="model_comparison" src="https://github.com/user-attachments/assets/254fa3d8-6319-4fe3-b828-d88f09c2799a" />
 
+      The chart shows that all five models achieve fairly similar accuracy:
+
+      XGBoost: 58.1% — highest
+      Logistic Regression: 58.2% — actually marginally highest
+      Gradient Boosting: 57.6%
+      Random Forest: 56.8%
+      Decision Tree: 54.1% — lowest
       
-      Below visualizations are added only for the best model (XGBoost - the one with the lowest Log Loss):
+      Conclusion:
+      Logistic Regression and XGBoost perform almost identically and are clearly the strongest models by accuracy. Decision Tree performs the weakest.
+      
+      However, since I have selected the best model based on Log Loss, the final choice of XGBoost is still justified: although Logistic Regression has a slightly higher accuracy (58.22% vs 58.12%), XGBoost has the lower Log Loss (0.9034 vs 0.9048) and therefore provides slightly better probability predictions.
+      
+      Below other visualizations are generated/examined only for the best model (XGBoost - the one with the lowest Log Loss):
       
       B) Confusion Matrix: plot_confusion_matrix()
       It plots the confusion matrix for standard classification evaluation.
 
 <img width="1779" height="1770" alt="confusion_matrix" src="https://github.com/user-attachments/assets/974b1fd3-a448-4757-bf0f-691adc188565" />
 
+      The matrix shows where XGBoost's predictions are correct and where it gets confused.
+
+      Home Win: 4,050 correctly predicted out of 4,717 -> ~85.9% recall. Very good.
+      Draw: Only 91 correctly predicted out of 2,310 -> ~3.9% recall. Very poor.
+      Away Win: 1,612 correctly predicted out of 2,872 -> ~56.1% recall. Reasonable.
       
+      Main observation: 
+      The biggest problem is Draw prediction. Of the 2,310 actual draws, XGBoost predicted only 91 as Draw. Most were incorrectly classified as Home Win (1,532) or Away Win (687). This also explains the ROC result (shown below) for Draw (AUC = 0.606) — the model has difficulty distinguishing draws from wins.
+      
+      Overall conclusion:
+      XGBoost is strong at identifying Home Wins, reasonably good at Away Wins, but performs poorly on Draws. This class imbalance/confusion is an important area for future improvement, perhaps through better draw-related features, class weighting, or probability calibration.
+
       C) ROC Curve: plot_roc_curve()
       It plots multiclass ROC curve (one-vs-rest) which shows probability discrimination. It measures how well the model can distinguish one outcome from the others.
 
@@ -1343,11 +1366,20 @@ This step plots various visualization figures from the evaluation summary for ea
 
       
       E) Feature Importance: plot_feature_importance()
-        Feature Importance (essential for tree-based models) indicates which features influenced the prediction most. This is only applicable to Random Forest, Gradient Boosting, XGBoost
+        Feature Importance (essential for tree-based models) indicates which features influenced the model's prediction most. This is only applicable to Random Forest, Gradient Boosting, XGBoost
         
-        Below figure is for XGBoost:
+        Below figure is for the best model again (XGBoost):
 
 <img width="2964" height="1765" alt="feature_importance" src="https://github.com/user-attachments/assets/a8082d19-9efe-40e4-978c-08109dbb24cb" />
+
+        Interpretations:
+         - H2H goal difference is the most important feature. This suggests the historical goal difference between the two teams is highly useful for predicting the outcome.
+         - Neutral venue is the second most important feature, indicating whether the match is played at a neutral location has a noticeable influence.
+         - Away/home goal difference and H2H home-team win rate are also important.
+         - Several tournament and team-specific features appear in the top 20, such as Germany, Brazil, Russia, and tournament types.
+         - Recent form features such as home_last5_goal_difference also contribute, but less than the H2H and overall goal-difference features.
+        
+        Overall XGBoost relies most heavily on historical head-to-head performance and goal-difference statistics, while venue, recent form, team identity, and tournament context provide additional predictive information. One important point: feature importance does not tell us whether a feature increases or decreases the probability of a particular outcome. It only tells us how useful the feature was to the XGBoost model's decision-making.
 
 
       Also, two additional configuration flags are added:
