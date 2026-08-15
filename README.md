@@ -1221,7 +1221,7 @@ The evaluation is done in below 2 phases:
       Evaluation completed successfully.
 
 
-## 8. Visualization:
+## 9. Visualization:
 
 This step plots various visualization figures from the evaluation summary for easy understanding of the model's performance.
 
@@ -1388,3 +1388,96 @@ This step plots various visualization figures from the evaluation summary for ea
       
       SHOW_FIGURES: this is set to "False" by default, which means that the visualization figures are not displayed or popped-up during a normal execution. This can be configured to "True" only during debugging for inspection.
 
+
+## 10. Prediction / Inference:
+
+Prediction is the final step of the ML lifecycle. It predicts the match result and the predicted probabilities of a future match between two teams.
+
+**Files:** src/inference/predict.py, src/inference/load_model.py
+
+**Steps:**
+
+During training, the model learned from a set of engineered features, such as:
+
+    - Home win percentage
+    - Away win percentage
+    - Last 5 matches form
+    - Average goals scored
+    - Average goals conceded
+    - Head-to-head statistics
+    - Tournament
+    - Neutral venue
+
+Therefore, the trained model cannot make a prediction from only the team names, for example:
+
+    home_team = "Brazil"
+    away_team = "Germany"
+
+The model expects the same feature structure that was used during training.
+
+The existing feature_engineering.py was originally designed to generate features for the entire historical dataset. Therefore, the first refactoring required for prediction is a small extension to this implementation: adding a new public method, create_prediction_features().
+
+This method internally:
+
+    - computes the current historical statistics for both teams,
+    - computes the current head-to-head statistics,
+    - assembles exactly the same feature columns used during training,
+    - creates a single-row DataFrame representing the upcoming match,
+    - returns this DataFrame to the prediction pipeline.
+
+The resulting flow is:
+
+    Brazil vs Germany
+    ->
+    
+    create_prediction_features()
+    ->
+    
+    Historical Team Statistics
+    + Last 5 Match Statistics
+    + Head-to-Head Statistics
+    + Match Information
+    ->
+    
+    Single-row Feature DataFrame
+    ->
+    
+    Load saved ML Pipeline
+    ->
+    
+    Prediction + Probabilities
+
+
+**Display Output:**
+      
+      Starting prediction pipeline...
+      
+      =========== Football Match Prediction ===========
+      
+      Home Team  : Brazil
+      Away Team  : Germany
+      Tournament : FIFA World Cup
+      Neutral    : False
+      
+      Creating prediction features...
+      
+      Loading Cleaned Dataset...
+      
+      Loaded 49495 matches.
+      
+      Prediction features created successfully.
+      
+      Loading model: C:\xxx\International_Football_Match_Outcome_Probability_Predictor\checkpoints\xgboost.pkl
+      Model loaded successfully.
+      
+      Prediction
+      -------------------------------------------------
+      
+      Predicted Result : Away Win
+      
+      Prediction Probabilities:
+        Home Win   : 35.70%
+        Draw       : 17.43%
+        Away Win   : 46.87%
+      
+      Prediction completed successfully.
