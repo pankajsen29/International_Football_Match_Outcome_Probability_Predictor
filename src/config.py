@@ -54,3 +54,6 @@ MODEL_DISPLAY_NAMES = {
 EVALUATION_RESULTS_DIR = PROJECT_ROOT / "results"
 SAVE_FIGURES = True
 SHOW_FIGURES = False # enable only during debugging
+
+#prediction
+BEST_MODEL = "xgboost.pkl"
