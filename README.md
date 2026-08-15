@@ -1134,7 +1134,13 @@ The evaluation is done in below 2 phases:
       
       Therefore, with hyperparameter tuning, richer features (such as Elo or FIFA rankings), and time-series-aware model selection, it can realistically improve its predictive performance, which I would consider as futute enhancements.
 
-      I) evaluate_pipeline(): This function combines all the functions of phase 1 and 2 above, which is actually the entire evaluation pipeline.
+      I) save_evaluation_results(): This function saves the evaluation summary to a CSV file (evaluation_results.csv) in "results" folder. 
+      
+      This is useful for mainly two reasons:
+         - to compare the models without rerunning the evaluation.
+         - and to load the results later for plotting or analysis.
+   
+      J) evaluate_pipeline(): This function combines all the functions of phase 1 and 2 above, which is actually the entire evaluation pipeline.
           
 **Display Output:**
 
@@ -1213,4 +1219,172 @@ The evaluation is done in below 2 phases:
       Log Loss : 0.9034
       
       Evaluation completed successfully.
+
+
+## 8. Visualization:
+
+This step plots various visualization figures from the evaluation summary for easy understanding of the model's performance.
+
+**File:** visualization.py
+
+**Figures:**
+
+      A) Model comparison: plot_model_comparison()
+      It plots model accuracy comparison bar chart for easy comparison of all the models.
+
+<img width="2970" height="1766" alt="model_comparison" src="https://github.com/user-attachments/assets/254fa3d8-6319-4fe3-b828-d88f09c2799a" />
+
+      The chart shows that all five models achieve fairly similar accuracy:
+
+      XGBoost: 58.1% — highest
+      Logistic Regression: 58.2% — actually marginally highest
+      Gradient Boosting: 57.6%
+      Random Forest: 56.8%
+      Decision Tree: 54.1% — lowest
+      
+      Conclusion:
+      Logistic Regression and XGBoost perform almost identically and are clearly the strongest models by accuracy. Decision Tree performs the weakest.
+      
+      However, since I have selected the best model based on Log Loss, the final choice of XGBoost is still justified: although Logistic Regression has a slightly higher accuracy (58.22% vs 58.12%), XGBoost has the lower Log Loss (0.9034 vs 0.9048) and therefore provides slightly better probability predictions.
+      
+      Below other visualizations are generated/examined only for the best model (XGBoost - the one with the lowest Log Loss):
+      
+      B) Confusion Matrix: plot_confusion_matrix()
+      It plots the confusion matrix for standard classification evaluation.
+
+<img width="1779" height="1770" alt="confusion_matrix" src="https://github.com/user-attachments/assets/974b1fd3-a448-4757-bf0f-691adc188565" />
+
+      The matrix shows where XGBoost's predictions are correct and where it gets confused.
+
+      Home Win: 4,050 correctly predicted out of 4,717 -> ~85.9% recall. Very good.
+      Draw: Only 91 correctly predicted out of 2,310 -> ~3.9% recall. Very poor.
+      Away Win: 1,612 correctly predicted out of 2,872 -> ~56.1% recall. Reasonable.
+      
+      Main observation: 
+      The biggest problem is Draw prediction. Of the 2,310 actual draws, XGBoost predicted only 91 as Draw. Most were incorrectly classified as Home Win (1,532) or Away Win (687). This also explains the ROC result (shown below) for Draw (AUC = 0.606) — the model has difficulty distinguishing draws from wins.
+      
+      Overall conclusion:
+      XGBoost is strong at identifying Home Wins, reasonably good at Away Wins, but performs poorly on Draws. This class imbalance/confusion is an important area for future improvement, perhaps through better draw-related features, class weighting, or probability calibration.
+
+      C) ROC Curve: plot_roc_curve()
+      It plots multiclass ROC curve (one-vs-rest) which shows probability discrimination. It measures how well the model can distinguish one outcome from the others.
+
+<img width="2070" height="1765" alt="roc_curve" src="https://github.com/user-attachments/assets/31cda407-6e48-4675-bf88-eaf7aecf03d9" />
+
+      From the figure we can see:
+        Away Win: AUC = 0.780 (best)
+        Home Win: AUC = 0.764 
+        Draw: AUC = 0.606 (weakest)
+
+        Hint: AUC (Area Under Curve): The probability that the model ranks a randomly chosen positive example higher than a randomly chosen negative example. For example, for Home Win (AUC = 0.764):
+        Suppose we randomly pick:
+        Match A -> actually Home Win
+        Match B -> actually NOT Home Win
+        There is approximately a 76.4% chance that XGBoost assigns a higher Home Win probability to Match A than Match B.
+  
+        Interpretation of each class:
+        Home Win (AUC = 0.764): The blue curve is well above the diagonal.
+        -> Good discrimination ability.
+        -> The model can distinguish Home Wins from non-Home Wins fairly well.
+        
+        Away Win (AUC = 0.780): The green curve is the highest.
+        -> Best performing class.
+        -> The model is slightly better at identifying Away Wins than Home Wins.
+        
+        Draw (AUC = 0.606): The orange curve is much closer to the diagonal.
+        -> Weak discrimination ability.
+        -> The model struggles to separate Draws from non-Draws.
+        
+        This is very common in football prediction because draws are usually difficult to predict and often have fewer clear patterns than wins.
+        
+        Conclusion:
+        XGBoost shows good discriminatory power for Home Wins (AUC = 0.764) and Away Wins (AUC = 0.780), indicating that the model can reliably distinguish these outcomes from other match results. However, Draws remain challenging to predict (AUC = 0.606), suggesting that additional features or alternative modeling approaches may be needed to improve draw prediction performance.
+        
+        Is this satisfactory?:
+        For an international football match prediction project:
+        AUC > 0.75  -> Good
+        AUC 0.65-0.75 -> Reasonable
+        AUC ~0.60 -> Weak but still better than random
+        AUC = 0.50 -> Random guessing
+        
+        Home Win and Away Win performance are good, while Draw prediction is the main area for future improvement. This aligns with the earlier results where overall accuracy was around 58%, which is a realistic result for football outcome prediction.
+
+
+      D) Calibration Curve: plot_calibration_curve()
+          Args:
+          model_name (str): Name of the model.
+          y_test (Series): True labels.
+          y_prob (ndarray): Predicted probabilities.
+          
+          It plots calibration curves for multiclass classification using a One-vs-Rest approach. This tells whether the predicted probabilities can be trusted. It basically shows whether predicted probabilities like 70% Home Win actually correspond to events happening about 70% of the time.
+
+          Example:
+          Suppose XGBoost predicts ~80% Home Win probability for 100 different matches in the test set:
+          Match 1:  Team A vs Team B -> Home Win = 82%
+          Match 2:  Team C vs Team D -> Home Win = 79%
+          Match 3:  Team E vs Team F -> Home Win = 81%
+          ...
+          Match 100: Team X vs Team Y -> Home Win = 80%
+          
+          If the model is perfectly calibrated, then about 80 of those 100 matches should actually have been home wins. That's what the calibration curve compares: predicted probability (what the model predicted) versus observed frequency (what actually happened).
+                    
+          i) How to interpret the curve (in general):
+          
+          Suppose the graph for Home Win looks like this:
+
+<img width="414" height="329" alt="image" src="https://github.com/user-attachments/assets/d485ac4d-9531-402c-8847-3873e7cb7b13" />
+
+          The dashed diagonal represents perfect calibration.
+
+          If the curve is close to the diagonal -> The probabilities are reliable.
+          e.g., Predicted 70%  -> Actually happens about 70% of the time
+          
+          If the curve is below the diagonal -> The model is overconfident.
+          e.g.,
+          Predicts 90% -> Actually happens 70%
+          => It is assigning probabilities that are too high.
+          
+          If the curve is above the diagonal -> The model is underconfident.
+          e.g.,
+          Predicts 60% -> Actually happens 80%
+          => The model is more accurate than its confidence suggests.
+          
+          
+          ii) The generated curve:
+
+<img width="2370" height="1765" alt="calibration_curve" src="https://github.com/user-attachments/assets/6f4436e6-ed98-4999-b5e1-611a3432d70f" />
+
+          iii) Interpretation of the generated curve:
+          
+          XGBoost calibration curve looks reasonably well calibrated overall. It tells:
+          
+          Home Win: The curve stays quite close to the diagonal = good calibration. XGBoost's Home Win probabilities are generally reliable.
+          Away Win: The curve is mostly above the diagonal, especially around 0.5 – 0.75 = the model is somewhat underconfident for Away Win.
+          Draw: The curve falls below the diagonal at higher probabilities = the model tends to be overconfident when predicting Draw.
+          
+          XGBoost demonstrates generally good probability calibration, particularly for Home Win and Away Win. However, the Draw probabilities show some overconfidence, indicating that the model's probability estimates for draws could be improved.
+
+      
+      E) Feature Importance: plot_feature_importance()
+        Feature Importance (essential for tree-based models) indicates which features influenced the model's prediction most. This is only applicable to Random Forest, Gradient Boosting, XGBoost
+        
+        Below figure is for the best model again (XGBoost):
+
+<img width="2964" height="1765" alt="feature_importance" src="https://github.com/user-attachments/assets/a8082d19-9efe-40e4-978c-08109dbb24cb" />
+
+        Interpretations:
+         - H2H goal difference is the most important feature. This suggests the historical goal difference between the two teams is highly useful for predicting the outcome.
+         - Neutral venue is the second most important feature, indicating whether the match is played at a neutral location has a noticeable influence.
+         - Away/home goal difference and H2H home-team win rate are also important.
+         - Several tournament and team-specific features appear in the top 20, such as Germany, Brazil, Russia, and tournament types.
+         - Recent form features such as home_last5_goal_difference also contribute, but less than the H2H and overall goal-difference features.
+        
+        Overall XGBoost relies most heavily on historical head-to-head performance and goal-difference statistics, while venue, recent form, team identity, and tournament context provide additional predictive information. One important point: feature importance does not tell us whether a feature increases or decreases the probability of a particular outcome. It only tells us how useful the feature was to the XGBoost model's decision-making.
+
+
+      Also, two additional configuration flags are added:
+      
+      SAVE_FIGURES: this is set to "True" by default, which means that the visualization figures are saved (in "results" folder) every time these are generated.
+      
+      SHOW_FIGURES: this is set to "False" by default, which means that the visualization figures are not displayed or popped-up during a normal execution. This can be configured to "True" only during debugging for inspection.
 
