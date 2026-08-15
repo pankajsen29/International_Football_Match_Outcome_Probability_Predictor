@@ -382,3 +382,149 @@ def feature_engineering_pipeline():
     save_dataset(feature_dataframe, cfg.FEATURES_FILE)
 
     print("\nFeature engineering completed successfully.")
+
+
+############################################################
+# Create Features for a Future Match Prediction
+#
+# Generates the same features used during model training,
+# but for a new match whose result is not yet known.
+#
+# Input:
+#   home_team  : Home team name
+#   away_team  : Away team name
+#   tournament : Tournament name
+#   neutral    : Whether the match is played at a neutral venue
+#
+# Output:
+#   DataFrame containing the features required by the model.
+#
+# Important:
+#   Only historical matches are used to calculate the features.
+#   The future match itself is NOT added to the statistics.
+
+# e.g., France vs Germany
+# the function calculates:
+#   France historical statistics
+#   Germany historical statistics
+#   France vs Germany H2H statistics
+#   =>
+#   prediction_features.
+# and does not know the future result.
+
+############################################################
+def create_prediction_features(home_team, away_team, tournament, neutral):
+
+    print("\nCreating prediction features...")
+
+    # Load all historical matches
+    dataframe = load_dataset(cfg.CLEANED_FILE)
+
+    # Initialize statistics
+    team_stats = initialize_team_stats()
+    h2h_stats = initialize_head_to_head()
+
+    # Replay all historical matches
+    #
+    # This reconstructs the current historical state of
+    # team statistics and head-to-head statistics.
+    for match in dataframe.itertuples(index=False):
+
+        # Update team statistics
+        update_team_statistics(
+            home_team=match.home_team,
+            away_team=match.away_team,
+            home_score=match.home_score,
+            away_score=match.away_score,
+            team_stats=team_stats
+        )
+
+        # Update H2H statistics
+        update_head_to_head(
+            home_team=match.home_team,
+            away_team=match.away_team,
+            home_score=match.home_score,
+            away_score=match.away_score,
+            h2h_stats=h2h_stats
+        )
+
+    # Extract current team statistics
+    home = extract_team_features(
+        home_team,
+        team_stats
+    )
+
+    away = extract_team_features(
+        away_team,
+        team_stats
+    )
+
+    # Extract current H2H statistics
+    h2h = extract_head_to_head_features(
+        home_team,
+        away_team,
+        h2h_stats
+    )
+
+    # Create prediction feature row
+    #
+    # IMPORTANT:
+    # "target" is NOT included because this is what the
+    # trained model will predict.
+    prediction_features = {
+
+        # Match information
+        "home_team": home_team,
+        "away_team": away_team,
+        "tournament": tournament,
+        "neutral": neutral,
+
+        # Career statistics
+        "home_matches_played": home["matches_played"],
+        "away_matches_played": away["matches_played"],
+
+        "home_win_rate": home["win_rate"],
+        "away_win_rate": away["win_rate"],
+
+        "home_avg_goals": home["avg_goals_scored"],
+        "away_avg_goals": away["avg_goals_scored"],
+
+        "home_avg_conceded": home["avg_goals_conceded"],
+        "away_avg_conceded": away["avg_goals_conceded"],
+
+        "home_goal_difference": home["goal_difference"],
+        "away_goal_difference": away["goal_difference"],
+
+        # Last five matches
+        "home_last5_win_rate": home["last5_win_rate"],
+        "away_last5_win_rate": away["last5_win_rate"],
+
+        "home_last5_avg_goals":
+            home["last5_avg_goals_scored"],
+
+        "away_last5_avg_goals":
+            away["last5_avg_goals_scored"],
+
+        "home_last5_avg_conceded":
+            home["last5_avg_goals_conceded"],
+
+        "away_last5_avg_conceded":
+            away["last5_avg_goals_conceded"],
+
+        "home_last5_goal_difference":
+            home["last5_goal_difference"],
+
+        "away_last5_goal_difference":
+            away["last5_goal_difference"],
+
+        # Head-to-head statistics
+        **h2h
+    }
+
+    # Convert dictionary to DataFrame because the trained
+    # sklearn pipeline expects tabular input.
+    prediction_dataframe = pd.DataFrame([prediction_features])
+
+    print("\nPrediction features created successfully.")
+
+    return prediction_dataframe
